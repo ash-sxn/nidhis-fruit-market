@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -17,6 +16,7 @@ import SuperFoodPage from "./pages/category/super-food";
 import AuthPage from "./pages/AuthPage";
 import React, { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import BlogPage from "./pages/BlogPage";
 
 const queryClient = new QueryClient();
 
@@ -62,6 +62,7 @@ const App = () => (
           <Route path="/category/nidhis-spices" element={<NidhisSpicesPage />} />
           <Route path="/category/nidhis-whole-spices" element={<NidhisWholeSpicesPage />} />
           <Route path="/category/super-food" element={<SuperFoodPage />} />
+          <Route path="/blog" element={<BlogPage />} /> {/* <-- New route for blogs */}
           {/* Example protected route: */}
           {/* <Route path="/dashboard" element={<RequireAuth><DashboardPage /></RequireAuth>} /> */}
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

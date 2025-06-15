@@ -1,15 +1,15 @@
 import { ShoppingCart, Heart, Search, User, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
-import React from "react";
+import React, { useRef } from "react";
 import AuthProfileMenu from "./AuthProfileMenu";
 
 const NAV_LINKS = [
-  { name: "Home", href: "#" },
+  { name: "Home", href: "/" },
   {
     name: "Categories",
     href: "#",
     dropdown: [
-      { name: "Dry Fruits", href: "#" },
+      { name: "Dry Fruits", href: "/category/dry-fruits" },
       { name: "Spices", href: "#" },
       { name: "Gift Boxes", href: "#" },
       { name: "Combos", href: "#" },
@@ -18,7 +18,7 @@ const NAV_LINKS = [
     ],
   },
   { name: "About Us", href: "#" },
-  { name: "Blog", href: "#" },
+  { name: "Blog", href: "/blog" },
   { name: "Contact", href: "#" },
 ];
 
@@ -78,12 +78,20 @@ function CategoriesDropdown() {
 }
 
 const Header = () => {
+  // Forward "account" icon click to open profile menu
+  const profileBtnRef = useRef<HTMLButtonElement>(null);
+
+  const triggerProfileMenu = () => {
+    const elem = document.getElementById("header-profile-btn");
+    if (elem) (elem as HTMLButtonElement).click();
+  };
+
   return (
     <header className="sticky top-0 left-0 right-0 z-50 bg-white/90 backdrop-blur shadow">
       <nav className="container max-w-[1400px] flex items-center justify-between py-3">
         {/* Logo */}
         <a
-          href="#"
+          href="/"
           className="flex items-center gap-2 text-2xl font-playfair text-saffron font-bold tracking-tight"
           aria-label="Nidhis Dry Fruits Homepage"
         >
@@ -93,10 +101,10 @@ const Header = () => {
 
         {/* Main Nav */}
         <div className="hidden md:flex items-center gap-2 font-medium text-neutral-700">
-          <a href="#" className="px-3 py-2 hover:bg-neutral-100 rounded transition-colors">Home</a>
+          <a href="/" className="px-3 py-2 hover:bg-neutral-100 rounded transition-colors">Home</a>
           <CategoriesDropdown />
           <a href="#" className="px-3 py-2 hover:bg-neutral-100 rounded transition-colors">About Us</a>
-          <a href="#" className="px-3 py-2 hover:bg-neutral-100 rounded transition-colors">Blog</a>
+          <a href="/blog" className="px-3 py-2 hover:bg-neutral-100 rounded transition-colors">Blog</a>
           <a href="#" className="px-3 py-2 hover:bg-neutral-100 rounded transition-colors">Contact</a>
         </div>
         {/* Actions */}
@@ -112,7 +120,11 @@ const Header = () => {
             {/* Demo Cart Badge */}
             <span className="absolute -top-1 -right-1 bg-gold text-xs text-green font-bold px-1.5 py-0.5 rounded-full shadow">2</span>
           </button>
-          <button aria-label="Account" className="hover:bg-neutral-100 p-2 rounded transition-colors text-saffron">
+          {/* Account button triggers dropdown */}
+          <button aria-label="Account" className="hover:bg-neutral-100 p-2 rounded transition-colors text-saffron"
+            onClick={triggerProfileMenu}
+            tabIndex={0}
+          >
             <User className="w-5 h-5" />
           </button>
           <AuthProfileMenu />
