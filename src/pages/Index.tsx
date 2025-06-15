@@ -109,6 +109,8 @@ const Index = () => {
         <HeroSection />
         <FeaturedCategories />
 
+        <FrequentlyBought />
+
         <ProductSection
           title="Nidhis Dry Fruits"
           products={dryFruits}
@@ -130,7 +132,6 @@ const Index = () => {
           viewAllLink="#"
         />
 
-        <FrequentlyBought />
         <Testimonials />
         <NewsletterSignup />
       </main>
