@@ -1,6 +1,7 @@
 import { ShoppingCart, Heart, Search, User, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import React from "react";
+import AuthProfileMenu from "./AuthProfileMenu";
 
 const NAV_LINKS = [
   { name: "Home", href: "#" },
@@ -114,6 +115,7 @@ const Header = () => {
           <button aria-label="Account" className="hover:bg-neutral-100 p-2 rounded transition-colors text-saffron">
             <User className="w-5 h-5" />
           </button>
+          <AuthProfileMenu />
         </div>
       </nav>
     </header>
