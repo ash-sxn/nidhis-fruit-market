@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -118,8 +117,9 @@ const AuthPage: React.FC = () => {
 
         <form onSubmit={mode === "login" ? handleLogin : handleSignup} className="space-y-4">
           <div>
-            <FormLabel>Email</FormLabel>
+            <label className="block mb-1 font-medium text-neutral-700" htmlFor="email">Email</label>
             <Input
+              id="email"
               autoComplete="email"
               name="email"
               type="email"
@@ -131,8 +131,9 @@ const AuthPage: React.FC = () => {
             />
           </div>
           <div>
-            <FormLabel>Password</FormLabel>
+            <label className="block mb-1 font-medium text-neutral-700" htmlFor="password">Password</label>
             <Input
+              id="password"
               autoComplete={mode === "login" ? "current-password" : "new-password"}
               name="password"
               type="password"
@@ -146,8 +147,9 @@ const AuthPage: React.FC = () => {
           </div>
           {mode === "signup" && (
             <div>
-              <FormLabel>Username</FormLabel>
+              <label className="block mb-1 font-medium text-neutral-700" htmlFor="username">Username</label>
               <Input
+                id="username"
                 name="username"
                 type="text"
                 placeholder="Choose a username"
