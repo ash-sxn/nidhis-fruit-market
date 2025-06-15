@@ -103,6 +103,7 @@ const Header = () => {
           <a href="/blog" className="px-3 py-2 hover:bg-neutral-100 rounded transition-colors">Blog</a>
           <a href="#" className="px-3 py-2 hover:bg-neutral-100 rounded transition-colors">Contact</a>
         </div>
+        
         {/* Actions */}
         <div className="flex items-center gap-3">
           <button aria-label="Search" className="hover:bg-neutral-100 p-2 rounded transition-colors text-saffron">
@@ -121,18 +122,9 @@ const Header = () => {
             onClick={() => navigate("/cart")}
           >
             <ShoppingCart className="w-5 h-5" />
-            {/* Cart badge comes from Cart component */}
           </button>
-          {/* Account button navigates to /account */}
-          <button
-            aria-label="Account"
-            className="hover:bg-neutral-100 p-2 rounded transition-colors text-saffron"
-            onClick={() => navigate("/account")}
-            tabIndex={0}
-          >
-            <User className="w-5 h-5" />
-          </button>
-          {/* Only display menu—not the account icon—here */}
+          
+          {/* Remove the separate User icon since AuthProfileMenu handles authentication */}
           <AuthProfileMenu />
         </div>
       </nav>
@@ -141,4 +133,3 @@ const Header = () => {
 };
 
 export default Header;
-

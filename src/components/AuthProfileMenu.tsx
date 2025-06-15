@@ -15,10 +15,12 @@ const AuthProfileMenu: React.FC = () => {
   // Get current user/session
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      console.log("Auth state change:", { event: _event, user: session?.user });
       setUser(session?.user ?? null);
       setLoading(false);
     });
     supabase.auth.getSession().then(({ data }) => {
+      console.log("Initial session:", { user: data.session?.user });
       setUser(data.session?.user ?? null);
       setLoading(false);
     });
@@ -34,6 +36,7 @@ const AuthProfileMenu: React.FC = () => {
     
     const fetchProfile = async () => {
       try {
+        console.log("Fetching profile for user:", user.id);
         const { data, error } = await supabase
           .from("profiles")
           .select("username, avatar_url")
@@ -44,6 +47,7 @@ const AuthProfileMenu: React.FC = () => {
           console.error("Error fetching profile:", error);
         }
         
+        console.log("Profile data:", data);
         setProfile(data);
       } catch (error) {
         console.error("Error in fetchProfile:", error);
@@ -64,16 +68,20 @@ const AuthProfileMenu: React.FC = () => {
   let displayName: string = "Profile";
   if (profile?.username && profile.username.trim().length > 0) {
     displayName = profile.username.trim();
+    console.log("Using username:", displayName);
   } else if (user?.email) {
     // Extract only the part before @ symbol
     const emailPrefix = user.email.split("@")[0];
     displayName = emailPrefix;
+    console.log("Using email prefix:", displayName, "from email:", user.email);
   }
 
   // Avatar fallback character
   const fallbackChar = displayName && displayName.length > 0
     ? displayName.charAt(0).toUpperCase()
     : "U";
+
+  console.log("Final display values:", { displayName, fallbackChar, userEmail: user?.email });
 
   // Show loading state
   if (loading) {
