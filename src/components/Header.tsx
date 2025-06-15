@@ -1,4 +1,3 @@
-
 import { ShoppingCart, Heart, Search, User, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import React from "react";
@@ -20,6 +19,17 @@ const NAV_LINKS = [
   { name: "About Us", href: "#" },
   { name: "Blog", href: "#" },
   { name: "Contact", href: "#" },
+];
+
+const CATEGORY_LINKS = [
+  { name: "Diwali Gifting", slug: "diwali-gifting" },
+  { name: "Dry Fruits Combo", slug: "dry-fruits-combo" },
+  { name: "Festival Gifting", slug: "festival-gifting" },
+  { name: "Flavour makhana", slug: "flavour-makhana" },
+  { name: "Nidhis Dry Fruits", slug: "nidhis-dry-fruits" },
+  { name: "Nidhis Spices", slug: "nidhis-spices" },
+  { name: "Nidhis Whole Spices", slug: "nidhis-whole-spices" },
+  { name: "Super Food", slug: "super-food" },
 ];
 
 function CategoriesDropdown() {
@@ -44,16 +54,19 @@ function CategoriesDropdown() {
         <ChevronDown className="w-4 h-4 ml-0.5" />
       </button>
       {open && (
-        <div className="absolute z-40 left-0 mt-1 w-48 rounded-xl bg-white shadow-xl border border-neutral-200 animate-fade-in">
+        <div className="absolute z-40 left-0 mt-1 w-56 rounded-xl bg-white shadow-xl border border-neutral-200 animate-fade-in">
           <ul className="py-2">
-            {NAV_LINKS[1].dropdown?.map((item) => (
-              <li key={item.name}>
+            {CATEGORY_LINKS.map((item) => (
+              <li key={item.slug}>
                 <a
-                  href={item.href}
+                  href={`/category/${item.slug}`}
                   className="block px-4 py-2 text-neutral-700 hover:bg-saffron/10 transition-colors"
                 >
                   {item.name}
                 </a>
+                {item.slug !== CATEGORY_LINKS[CATEGORY_LINKS.length-1].slug && (
+                  <div className="border-b border-neutral-200 ml-4 mr-4" />
+                )}
               </li>
             ))}
           </ul>
