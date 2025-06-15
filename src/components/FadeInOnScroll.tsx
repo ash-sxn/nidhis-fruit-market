@@ -1,11 +1,12 @@
 
-import { motion, useAnimation, type MotionProps } from "framer-motion";
+import { motion } from "framer-motion";
+import type { ComponentProps, ReactNode, MutableRefObject } from "react";
 import { useRef, useEffect } from "react";
 
-interface FadeInOnScrollProps extends React.HTMLAttributes<HTMLDivElement>, MotionProps {
-  children: React.ReactNode;
+type FadeInOnScrollProps = ComponentProps<typeof motion.div> & {
+  children: ReactNode;
   delay?: number;
-}
+};
 
 /**
  * Animates children with a fade+slide-in effect when scrolled into view.
@@ -16,12 +17,12 @@ const FadeInOnScroll: React.FC<FadeInOnScrollProps> = ({
   delay = 0.1,
   ...props
 }) => {
-  const controls = useAnimation();
+  const controls = (motion as any).useAnimation ? (motion as any).useAnimation() : undefined;
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (!ref.current) return;
-    const observer = new IntersectionObserver(
+    if (!ref.current || !controls) return;
+    const observer = new window.IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
           controls.start("visible");
