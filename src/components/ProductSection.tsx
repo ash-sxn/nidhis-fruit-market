@@ -85,7 +85,7 @@ const ProductSection: React.FC<ProductSectionProps> = ({
                 <Button
                   className="bg-green text-white hover:bg-green/80 px-4 flex-1"
                   onClick={() => handleAddToCart(p)}
-                  disabled={addToCart.isLoading}
+                  disabled={addToCart.isPending}
                 >
                   <ShoppingCart className="mr-2 w-4 h-4" /> Add to cart
                 </Button>
@@ -93,7 +93,7 @@ const ProductSection: React.FC<ProductSectionProps> = ({
                   className="rounded-full p-2 border border-green bg-white hover:bg-green/10 text-green transition-colors flex items-center"
                   title="Add to wishlist"
                   onClick={() => handleAddToWishlist(p)}
-                  disabled={addToWishlist.isLoading}
+                  disabled={addToWishlist.isPending}
                   type="button"
                 >
                   <Heart className="w-5 h-5" />
@@ -108,3 +108,4 @@ const ProductSection: React.FC<ProductSectionProps> = ({
 };
 
 export default ProductSection;
+
