@@ -8,6 +8,7 @@ import NewsletterSignup from "@/components/NewsletterSignup";
 import Footer from "@/components/Footer";
 import FrequentlyBought from "@/components/FrequentlyBought";
 import ProductSection from "@/components/ProductSection";
+import FadeInOnScroll from "@/components/FadeInOnScroll";
 
 const dryFruits = [
   {
@@ -106,34 +107,49 @@ const Index = () => {
     <div className="flex flex-col min-h-screen bg-background font-inter">
       <Header />
       <main className="flex-1 w-full max-w-[1500px] mx-auto">
-        <HeroSection />
-        <FeaturedCategories />
-
-        <FrequentlyBought />
-
-        <ProductSection
-          title="Nidhis Dry Fruits"
-          products={dryFruits}
-          viewAllLink="#"
-        />
-        <ProductSection
-          title="Nidhis Spices"
-          products={spices}
-          viewAllLink="#"
-        />
-        <ProductSection
-          title="Nidhis Whole Spices"
-          products={wholeSpices}
-          viewAllLink="#"
-        />
-        <ProductSection
-          title="Super Food"
-          products={superFood}
-          viewAllLink="#"
-        />
-
-        <Testimonials />
-        <NewsletterSignup />
+        <FadeInOnScroll delay={0}>
+          <HeroSection />
+        </FadeInOnScroll>
+        <FadeInOnScroll delay={0.08}>
+          <FeaturedCategories />
+        </FadeInOnScroll>
+        <FadeInOnScroll delay={0.13}>
+          <FrequentlyBought />
+        </FadeInOnScroll>
+        <FadeInOnScroll delay={0.15}>
+          <ProductSection
+            title="Nidhis Dry Fruits"
+            products={dryFruits}
+            viewAllLink="#"
+          />
+        </FadeInOnScroll>
+        <FadeInOnScroll delay={0.18}>
+          <ProductSection
+            title="Nidhis Spices"
+            products={spices}
+            viewAllLink="#"
+          />
+        </FadeInOnScroll>
+        <FadeInOnScroll delay={0.21}>
+          <ProductSection
+            title="Nidhis Whole Spices"
+            products={wholeSpices}
+            viewAllLink="#"
+          />
+        </FadeInOnScroll>
+        <FadeInOnScroll delay={0.24}>
+          <ProductSection
+            title="Super Food"
+            products={superFood}
+            viewAllLink="#"
+          />
+        </FadeInOnScroll>
+        <FadeInOnScroll delay={0.27}>
+          <Testimonials />
+        </FadeInOnScroll>
+        <FadeInOnScroll delay={0.28}>
+          <NewsletterSignup />
+        </FadeInOnScroll>
       </main>
       <Footer />
     </div>
