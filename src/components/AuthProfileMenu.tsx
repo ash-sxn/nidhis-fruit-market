@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -21,7 +22,7 @@ const AuthProfileMenu: React.FC = () => {
     return () => subscription.unsubscribe();
   }, []);
 
-  // Fetch profile info from "profiles" table; fallback to email if username missing
+  // Fetch profile info from "profiles" table; fallback to email prefix if username missing
   useEffect(() => {
     if (!user) {
       setProfile(null);
@@ -44,15 +45,21 @@ const AuthProfileMenu: React.FC = () => {
     navigate("/auth");
   };
 
-  // Username display: show username if present & nonempty, else part of email before "@"
-  let displayName = "Profile";
+  // Make displayName always username or the prefix of the email
+  let displayName: string = "Profile";
   if (profile?.username && profile.username.trim().length > 0) {
     displayName = profile.username.trim();
   } else if (user?.email) {
+    // Only show prefix, never the full email
     displayName = user.email.split("@")[0];
-  } 
+  }
 
-  // Don't render anything but username or email-as-fallback, don't render "0"
+  // The fallback character: first character of displayName, or "U"
+  const fallbackChar = displayName && displayName.length > 0
+    ? displayName.charAt(0).toUpperCase()
+    : "U";
+
+  // If not logged in
   if (!user)
     return (
       <Button size="sm" variant="outline" onClick={() => navigate("/auth")}>
@@ -72,12 +79,8 @@ const AuthProfileMenu: React.FC = () => {
       >
         <Avatar className="w-8 h-8">
           <AvatarImage src={profile?.avatar_url || ""} alt={displayName} />
-          {/* Only display first letter of username/email (capitalized) */}
-          <AvatarFallback>
-            {displayName.charAt(0).toUpperCase()}
-          </AvatarFallback>
+          <AvatarFallback>{fallbackChar}</AvatarFallback>
         </Avatar>
-        {/* Profile name, clean fallback, NO "0", no additional elements */}
         <span className="font-medium text-saffron">{displayName}</span>
       </button>
       {dropdown && (
