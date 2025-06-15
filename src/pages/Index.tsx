@@ -1,12 +1,24 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+
+// Nidhis Dry Fruits homepage composed of main sections
+
+import Header from "@/components/Header";
+import HeroSection from "@/components/HeroSection";
+import FeaturedCategories from "@/components/FeaturedCategories";
+import Testimonials from "@/components/Testimonials";
+import NewsletterSignup from "@/components/NewsletterSignup";
+import Footer from "@/components/Footer";
 
 const Index = () => {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background">
-      <div className="text-center">
-        <h1 className="text-4xl font-bold mb-4">Welcome to Your Blank App</h1>
-        <p className="text-xl text-muted-foreground">Start building your amazing project here!</p>
-      </div>
+    <div className="flex flex-col min-h-screen bg-background font-inter">
+      <Header />
+      <main className="flex-1 w-full max-w-[1500px] mx-auto">
+        <HeroSection />
+        <FeaturedCategories />
+        <Testimonials />
+        <NewsletterSignup />
+      </main>
+      <Footer />
     </div>
   );
 };
