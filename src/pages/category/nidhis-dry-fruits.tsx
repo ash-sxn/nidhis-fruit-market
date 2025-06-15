@@ -1,4 +1,3 @@
-
 import React from "react";
 import CategoryLayout from "@/components/CategoryLayout";
 import ProductSection, { Product } from "@/components/ProductSection";
@@ -24,29 +23,12 @@ const products: Product[] = [
   { name: "Walnut Kernel [500gm]", image: "https://images.unsplash.com/photo-1498936178812-4b2e558d2937?auto=format&fit=crop&w=400&q=80", price: "₹849.00" }
 ];
 
-const [initialSort, initialFilter] = ["default", "all"];
+const initialSort = "default";
 
 export default function NidhisDryFruitsPage() {
   const [sort, setSort] = React.useState(initialSort);
-  const [filter, setFilter] = React.useState(initialFilter);
 
   let filteredProducts = [...products];
-  if (filter === "under-1000") {
-    filteredProducts = filteredProducts.filter(p => {
-      const price = typeof p.price === "string"
-        ? parseInt(p.price.replace(/[^\d]/g, ""))
-        : parseInt(p.price.sale.replace(/[^\d]/g, ""));
-      return price < 1000;
-    });
-  }
-  if (filter === "1000-2000") {
-    filteredProducts = filteredProducts.filter(p => {
-      const price = typeof p.price === "string"
-        ? parseInt(p.price.replace(/[^\d]/g, ""))
-        : parseInt(p.price.sale.replace(/[^\d]/g, ""));
-      return price >= 1000 && price <= 2000;
-    });
-  }
   if (sort === "price-asc") {
     filteredProducts.sort((a, b) => {
       const priceA = typeof a.price === "string"
@@ -88,9 +70,7 @@ export default function NidhisDryFruitsPage() {
       </div>
       <ProductSortFilterBar
         sortValue={sort}
-        filterValue={filter}
         onSortChange={setSort}
-        onFilterChange={setFilter}
       />
       <ProductSection
         title="Nidhis Dry Fruits"
@@ -99,4 +79,3 @@ export default function NidhisDryFruitsPage() {
     </CategoryLayout>
   );
 }
-

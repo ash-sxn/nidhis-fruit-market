@@ -1,4 +1,3 @@
-
 import React from "react";
 import CategoryLayout from "@/components/CategoryLayout";
 import ProductSection, { Product } from "@/components/ProductSection";
@@ -12,29 +11,12 @@ const products: Product[] = [
   }
 ];
 
-const [initialSort, initialFilter] = ["default", "all"];
+const initialSort = "default";
 
 export default function FlavourMakhanaPage() {
   const [sort, setSort] = React.useState(initialSort);
-  const [filter, setFilter] = React.useState(initialFilter);
 
   let filteredProducts = [...products];
-  if (filter === "under-1000") {
-    filteredProducts = filteredProducts.filter(p => {
-      const price = typeof p.price === "string"
-        ? parseInt(p.price.replace(/[^\d]/g, ""))
-        : parseInt(p.price.sale.replace(/[^\d]/g, ""));
-      return price < 1000;
-    });
-  }
-  if (filter === "1000-2000") {
-    filteredProducts = filteredProducts.filter(p => {
-      const price = typeof p.price === "string"
-        ? parseInt(p.price.replace(/[^\d]/g, ""))
-        : parseInt(p.price.sale.replace(/[^\d]/g, ""));
-      return price >= 1000 && price <= 2000;
-    });
-  }
   if (sort === "price-asc") {
     filteredProducts.sort((a, b) => {
       const priceA = typeof a.price === "string"
@@ -76,9 +58,7 @@ export default function FlavourMakhanaPage() {
       </div>
       <ProductSortFilterBar
         sortValue={sort}
-        filterValue={filter}
         onSortChange={setSort}
-        onFilterChange={setFilter}
       />
       <ProductSection
         title="Flavour makhana"
@@ -87,4 +67,3 @@ export default function FlavourMakhanaPage() {
     </CategoryLayout>
   );
 }
-
