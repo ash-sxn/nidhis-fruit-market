@@ -1,4 +1,3 @@
-
 // Nidhis Dry Fruits homepage composed of main sections
 
 import Header from "@/components/Header";
@@ -7,6 +6,7 @@ import FeaturedCategories from "@/components/FeaturedCategories";
 import Testimonials from "@/components/Testimonials";
 import NewsletterSignup from "@/components/NewsletterSignup";
 import Footer from "@/components/Footer";
+import FrequentlyBought from "@/components/FrequentlyBought";
 
 const Index = () => {
   return (
@@ -15,6 +15,7 @@ const Index = () => {
       <main className="flex-1 w-full max-w-[1500px] mx-auto">
         <HeroSection />
         <FeaturedCategories />
+        <FrequentlyBought />
         <Testimonials />
         <NewsletterSignup />
       </main>
