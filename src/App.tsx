@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -17,6 +18,9 @@ import AuthPage from "./pages/AuthPage";
 import React, { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import BlogPage from "./pages/BlogPage";
+import Cart from "./components/Cart";
+import Wishlist from "./components/Wishlist";
+import AccountPage from "./pages/AccountPage";
 
 const queryClient = new QueryClient();
 
@@ -62,10 +66,12 @@ const App = () => (
           <Route path="/category/nidhis-spices" element={<NidhisSpicesPage />} />
           <Route path="/category/nidhis-whole-spices" element={<NidhisWholeSpicesPage />} />
           <Route path="/category/super-food" element={<SuperFoodPage />} />
-          <Route path="/blog" element={<BlogPage />} /> {/* <-- New route for blogs */}
+          <Route path="/blog" element={<BlogPage />} />
+          <Route path="/cart" element={<Cart />} />
+          <Route path="/wishlist" element={<Wishlist />} />
+          <Route path="/account" element={<AccountPage />} />
           {/* Example protected route: */}
           {/* <Route path="/dashboard" element={<RequireAuth><DashboardPage /></RequireAuth>} /> */}
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

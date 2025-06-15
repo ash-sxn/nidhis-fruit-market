@@ -1,7 +1,9 @@
+
 import { ShoppingCart, Heart, Search, User, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import React, { useRef } from "react";
 import AuthProfileMenu from "./AuthProfileMenu";
+import { useNavigate } from "react-router-dom";
 
 const NAV_LINKS = [
   { name: "Home", href: "/" },
@@ -78,13 +80,7 @@ function CategoriesDropdown() {
 }
 
 const Header = () => {
-  // Forward "account" icon click to open profile menu
-  const profileBtnRef = useRef<HTMLButtonElement>(null);
-
-  const triggerProfileMenu = () => {
-    const elem = document.getElementById("header-profile-btn");
-    if (elem) (elem as HTMLButtonElement).click();
-  };
+  const navigate = useNavigate();
 
   return (
     <header className="sticky top-0 left-0 right-0 z-50 bg-white/90 backdrop-blur shadow">
@@ -112,21 +108,31 @@ const Header = () => {
           <button aria-label="Search" className="hover:bg-neutral-100 p-2 rounded transition-colors text-saffron">
             <Search className="w-5 h-5" />
           </button>
-          <button aria-label="Wishlist" className="hover:bg-neutral-100 p-2 rounded transition-colors text-saffron">
+          <button
+            aria-label="Wishlist"
+            className="hover:bg-neutral-100 p-2 rounded transition-colors text-saffron"
+            onClick={() => navigate("/wishlist")}
+          >
             <Heart className="w-5 h-5" />
           </button>
-          <button aria-label="Cart" className="hover:bg-neutral-100 p-2 rounded transition-colors text-saffron relative">
+          <button
+            aria-label="Cart"
+            className="hover:bg-neutral-100 p-2 rounded transition-colors text-saffron relative"
+            onClick={() => navigate("/cart")}
+          >
             <ShoppingCart className="w-5 h-5" />
-            {/* Demo Cart Badge */}
-            <span className="absolute -top-1 -right-1 bg-gold text-xs text-green font-bold px-1.5 py-0.5 rounded-full shadow">2</span>
+            {/* Cart badge comes from Cart component */}
           </button>
-          {/* Account button triggers dropdown */}
-          <button aria-label="Account" className="hover:bg-neutral-100 p-2 rounded transition-colors text-saffron"
-            onClick={triggerProfileMenu}
+          {/* Account button navigates to /account */}
+          <button
+            aria-label="Account"
+            className="hover:bg-neutral-100 p-2 rounded transition-colors text-saffron"
+            onClick={() => navigate("/account")}
             tabIndex={0}
           >
             <User className="w-5 h-5" />
           </button>
+          {/* Only display menu—not the account icon—here */}
           <AuthProfileMenu />
         </div>
       </nav>
@@ -135,3 +141,4 @@ const Header = () => {
 };
 
 export default Header;
+

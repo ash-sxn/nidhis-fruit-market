@@ -9,6 +9,7 @@ import Footer from "@/components/Footer";
 import FrequentlyBought from "@/components/FrequentlyBought";
 import ProductSection from "@/components/ProductSection";
 import FadeInOnScroll from "@/components/FadeInOnScroll";
+import CartButtonPanel from "@/components/CartButtonPanel";
 
 const dryFruits = [
   {
@@ -106,6 +107,8 @@ const Index = () => {
   return (
     <div className="flex flex-col min-h-screen bg-background font-inter">
       <Header />
+      {/* Cart & Wishlist quick access for mobile */}
+      <CartButtonPanel />
       <main className="flex-1 w-full max-w-[1500px] mx-auto">
         <FadeInOnScroll delay={0}>
           <HeroSection />

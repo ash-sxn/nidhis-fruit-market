@@ -22,7 +22,7 @@ const AuthProfileMenu: React.FC = () => {
     return () => subscription.unsubscribe();
   }, []);
 
-  // Fetch profile info from "profiles" table; fallback to clean email if username missing
+  // Fetch profile info from "profiles" table; fallback to email only if username missing
   useEffect(() => {
     if (!user) {
       setProfile(null);
@@ -92,3 +92,4 @@ const AuthProfileMenu: React.FC = () => {
 };
 
 export default AuthProfileMenu;
+
