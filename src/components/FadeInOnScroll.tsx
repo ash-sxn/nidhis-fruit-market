@@ -1,6 +1,6 @@
 
-import { motion } from "framer-motion";
-import type { ComponentProps, ReactNode, MutableRefObject } from "react";
+import { motion, useAnimation } from "framer-motion";
+import type { ComponentProps, ReactNode } from "react";
 import { useRef, useEffect } from "react";
 
 type FadeInOnScrollProps = ComponentProps<typeof motion.div> & {
@@ -17,7 +17,7 @@ const FadeInOnScroll: React.FC<FadeInOnScrollProps> = ({
   delay = 0.1,
   ...props
 }) => {
-  const controls = (motion as any).useAnimation ? (motion as any).useAnimation() : undefined;
+  const controls = useAnimation();
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -56,3 +56,4 @@ const FadeInOnScroll: React.FC<FadeInOnScrollProps> = ({
 };
 
 export default FadeInOnScroll;
+
