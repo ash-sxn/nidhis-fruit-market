@@ -1,5 +1,6 @@
 
 import { Gift, Leaf, Star, TrendingUp, CircleDollarSign, Apple } from "lucide-react";
+import { Link } from "react-router-dom";
 
 const categories = [
   {
@@ -34,6 +35,16 @@ const categories = [
   },
 ];
 
+// map category display names to route slugs
+const slugMap: Record<string, string> = {
+  "Dry Fruits": "nidhis-dry-fruits",
+  "Spices": "nidhis-spices",
+  "Gift Boxes": "festival-gifting",
+  "Combos": "dry-fruits-combo",
+  "Superfoods": "super-food",
+  "Bestsellers": "diwali-gifting",
+};
+
 const FeaturedCategories = () => {
   return (
     <section id="categories" className="py-16 bg-neutral-50">
@@ -45,18 +56,22 @@ const FeaturedCategories = () => {
           Explore our handpicked categories and discover quality products for every need.
         </p>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-          {categories.map(({ name, icon: Icon, desc }) => (
-            <div
-              key={name}
-              className="rounded-xl bg-white shadow-card hover:shadow-lg transition-shadow hover:-translate-y-1 p-7 flex flex-col items-center text-center border border-gold/10 group"
-            >
-              <span className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-saffron/10 mb-4 group-hover:bg-saffron/20 transition-colors">
-                <Icon className="w-8 h-8 text-saffron" />
-              </span>
-              <h3 className="text-xl font-bold text-saffron font-playfair mb-1">{name}</h3>
-              <p className="text-neutral-600">{desc}</p>
-            </div>
-          ))}
+          {categories.map(({ name, icon: Icon, desc }) => {
+            const slug = slugMap[name] ?? "#";
+            return (
+              <Link
+                key={name}
+                to={slug.startsWith("#") ? slug : `/category/${slug}`}
+                className="rounded-xl bg-white shadow-card hover:shadow-lg transition-shadow hover:-translate-y-1 p-7 flex flex-col items-center text-center border border-gold/10 group"
+              >
+                <span className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-saffron/10 mb-4 group-hover:bg-saffron/20 transition-colors">
+                  <Icon className="w-8 h-8 text-saffron" />
+                </span>
+                <h3 className="text-xl font-bold text-saffron font-playfair mb-1">{name}</h3>
+                <p className="text-neutral-600">{desc}</p>
+              </Link>
+            );
+          })}
         </div>
       </div>
     </section>

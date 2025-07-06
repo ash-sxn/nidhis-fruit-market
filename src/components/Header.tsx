@@ -1,11 +1,16 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import { ShoppingCart, Heart } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { useCartCount } from "@/hooks/useCartCount";
 import { useWishlistCount } from "@/hooks/useWishlistCount";
 import ProductSearch from "@/components/ProductSearch";
 
+import { categories as categoryList } from "../config/categories";
+
 const Header = () => {
+  const { user } = useAuth();
   const cartCount = useCartCount();
   const wishlistCount = useWishlistCount();
 
@@ -22,7 +27,31 @@ const Header = () => {
           </div>
         </div>
 
-        <nav className="flex gap-4 sm:gap-6 items-center order-3">
+        <nav className="flex flex-wrap gap-6 sm:gap-8 items-center order-3">
+          {/* Categories dropdown */}
+          <DropdownMenu>
+            <DropdownMenuTrigger className="text-green font-medium hover:text-saffron transition-colors focus:outline-none">
+              Categories
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="rounded-md border border-gold/20 bg-white shadow-lg p-1">
+              {categoryList.map((c) => (
+                <DropdownMenuItem asChild key={c.slug} className="text-green hover:bg-saffron/10 hover:text-saffron cursor-pointer">
+                  <Link to={`/category/${c.slug}`}>{c.label}</Link>
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+          {user ? (
+            <Link to="/account" className="text-green font-medium hover:text-saffron transition-colors">Account</Link>
+          ) : (
+            <Link to="/auth" className="text-green font-medium hover:text-saffron transition-colors">Sign in</Link>
+          )}
+          <Link to="/blog" className="text-green font-medium hover:text-saffron transition-colors">
+            Blog
+          </Link>
+          <Link to="/account" className="text-green font-medium hover:text-saffron transition-colors">
+            Account
+          </Link>
           <Link to="/wishlist" className="relative">
             <Heart className="w-6 h-6 text-rose-500" />
             {wishlistCount > 0 && (
