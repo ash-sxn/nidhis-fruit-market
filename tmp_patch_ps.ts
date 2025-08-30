@@ -1,7 +1,11 @@
+
 import React, { useState, useMemo } from "react";
 import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+
+// Import all products statically. In a real app, this would be fetched.
+import { default as IndexPage } from "@/pages/Index";
 
 // Helper type for Product
 type Product = {
@@ -17,90 +21,90 @@ type SearchResult = {
   route: string;
 };
 
-// Local placeholder index that matches the items shown on the homepage
 const staticProductIndex: SearchResult[] = [
   // Nidhis Dry Fruits
   {
     name: "Almond – California [500gm]",
-    image: "/image/dryfruits/almonds.jpg",
+    image: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=400&q=80",
     category: "Nidhis Dry Fruits",
     route: "/category/nidhis-dry-fruits",
   },
   {
     name: "Almond Gurbandi [500gm]",
-    image: "/image/dryfruits/almonds-gurbandi.jpg",
+    image: "https://images.unsplash.com/photo-1450370364277-5ae5ce37c6b0?auto=format&fit=crop&w=400&q=80",
     category: "Nidhis Dry Fruits",
     route: "/category/nidhis-dry-fruits",
   },
   {
     name: "Black Dates [500gm]",
-    image: "/image/dryfruits/dates.jpg",
+    image: "https://images.unsplash.com/photo-1465101162946-4377e57745c3?auto=format&fit=crop&w=400&q=80",
     category: "Nidhis Dry Fruits",
     route: "/category/nidhis-dry-fruits",
   },
   {
     name: "Blueberry [250gm]",
-    image: "/image/dryfruits/blueberries-dried.jpg",
+    image: "https://images.unsplash.com/photo-1464983953574-0892a716854b?auto=format&fit=crop&w=400&q=80",
     category: "Super Food",
     route: "/category/super-food",
   },
   // Nidhis Spices
   {
     name: "Coriander Powder [100gm]",
-    image: "/image/dryfruits/coriander-powder.jpg",
+    image: "https://images.unsplash.com/photo-1524594154909-6ff45b1b5c92?auto=format&fit=crop&w=400&q=80",
     category: "Nidhis Spices",
     route: "/category/nidhis-spices",
   },
   {
     name: "Cumin Powder [100gm]",
-    image: "/image/dryfruits/cumin-powder.jpg",
+    image: "https://images.unsplash.com/photo-1502741347565-179b3b6b4882?auto=format&fit=crop&w=400&q=80",
     category: "Nidhis Spices",
     route: "/category/nidhis-spices",
   },
   {
     name: "Jain Sabji Masala [100gm]",
-    image: "/image/dryfruits/jain-sabji-masala.jpg",
+    image: "https://images.unsplash.com/photo-1500315331616-db9a6c62b69e?auto=format&fit=crop&w=400&q=80",
     category: "Nidhis Spices",
     route: "/category/nidhis-spices",
   },
   // Nidhis Whole Spices
   {
     name: "Black Cardamom [100gm]",
-    image: "/image/dryfruits/black-cardamom.jpg",
+    image: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=400&q=80",
     category: "Nidhis Whole Spices",
     route: "/category/nidhis-whole-spices",
   },
   {
     name: "Black Pepper [100gm]",
-    image: "/image/dryfruits/black-pepper.jpg",
+    image: "https://images.unsplash.com/photo-1464983953574-0892a716854b?auto=format&fit=crop&w=400&q=80",
     category: "Nidhis Whole Spices",
     route: "/category/nidhis-whole-spices",
   },
   {
     name: "Green Cardamom [100gm]",
-    image: "/image/dryfruits/green-cardamom.jpg",
+    image: "https://images.unsplash.com/photo-1519864600265-abb23847ef2c?auto=format&fit=crop&w=400&q=80",
     category: "Nidhis Whole Spices",
     route: "/category/nidhis-whole-spices",
   },
   // Super Food
   {
     name: "Chilgoza [250gm]",
-    image: "/image/dryfruits/chilgoza.jpg",
+    image: "https://images.unsplash.com/photo-1500315331616-db9a6c62b69e?auto=format&fit=crop&w=400&q=80",
     category: "Super Food",
     route: "/category/super-food",
   },
   {
     name: "Cranberry [250gm]",
-    image: "/image/dryfruits/cranberries-dried.jpg",
+    image: "https://images.unsplash.com/photo-1464983953574-0892a716854b?auto=format&fit=crop&w=400&q=80",
     category: "Super Food",
     route: "/category/super-food",
   },
   {
     name: "Mixed Fruits, Seeds & Nuts [500gm]",
-    image: "/image/dryfruits/mix-nuts.jpg",
+    image: "https://images.unsplash.com/photo-1465101162946-4377e57745c3?auto=format&fit=crop&w=400&q=80",
     category: "Super Food",
     route: "/category/super-food",
   },
+  // Add more as needed from your sections
 ];
 
 const ProductSearch: React.FC = () => {
@@ -167,3 +171,5 @@ const ProductSearch: React.FC = () => {
 };
 
 export default ProductSearch;
+
+

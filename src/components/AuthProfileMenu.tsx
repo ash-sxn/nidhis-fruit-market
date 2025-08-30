@@ -105,7 +105,7 @@ const AuthProfileMenu: React.FC = () => {
   return (
     <div className="relative">
       <button
-        className="flex items-center gap-2 text-sm px-2 py-1 rounded-full hover:bg-saffron/10 transition"
+        className="flex items-center gap-2 text-sm px-2 py-1 rounded-full hover:bg-saffron/10 transition max-w-[180px]"
         onClick={() => setDropdown((d) => !d)}
         aria-haspopup="true"
         aria-expanded={dropdown}
@@ -118,12 +118,23 @@ const AuthProfileMenu: React.FC = () => {
             {fallbackChar}
           </AvatarFallback>
         </Avatar>
-        <span className="font-medium text-saffron">{displayName}</span>
+        <span className="font-medium text-saffron truncate">{displayName}</span>
       </button>
       {dropdown && (
-        <div className="absolute right-0 mt-2 w-44 bg-white border rounded-lg shadow-xl z-50 py-2 animate-fade-in">
-          <div className="px-4 py-2 text-neutral-700 font-semibold">{displayName}</div>
+        <div className="absolute right-0 mt-2 w-56 bg-white border rounded-lg shadow-xl z-50 py-2 animate-fade-in">
+          <div className="px-4 py-2">
+            <div className="text-neutral-800 font-semibold truncate">{displayName}</div>
+            {user?.email && (
+              <div className="text-xs text-neutral-500 truncate">{user.email}</div>
+            )}
+          </div>
           <div className="border-t border-neutral-100 my-1" />
+          <button
+            className="w-full text-left px-4 py-2 text-sm hover:bg-saffron/10"
+            onClick={() => { setDropdown(false); navigate("/account"); }}
+          >
+            Account
+          </button>
           <button 
             className="w-full text-left px-4 py-2 text-sm hover:bg-saffron/10" 
             onClick={handleLogout}

@@ -1,6 +1,8 @@
 
 import React from "react";
 import { Button } from "@/components/ui/button";
+import ImageWithFallback from "@/components/ImageWithFallback";
+import { productIdFromName } from "@/lib/product-id";
 import { Heart, ShoppingCart } from "lucide-react";
 import { useAddToCart } from "@/hooks/useAddToCart";
 import { useAddToWishlist } from "@/hooks/useAddToWishlist";
@@ -18,10 +20,8 @@ interface ProductSectionProps {
   viewAllLink?: string;
 }
 
-const getProductId = (product: Product) => {
-  // For this demo, a deterministic id from name
-  return btoa(encodeURIComponent(product.name));
-};
+// Deterministic UUID derived from product name so it fits UUID column type
+const getProductId = (product: Product) => productIdFromName(product.name);
 
 const ProductSection: React.FC<ProductSectionProps> = ({
   title,
@@ -62,7 +62,7 @@ const ProductSection: React.FC<ProductSectionProps> = ({
               className="rounded-xl bg-neutral-50 shadow-card hover:shadow-lg transition-shadow hover:-translate-y-1 p-4 flex flex-col items-center border border-gold/10 group"
             >
               <div className="overflow-hidden rounded-lg mb-3 w-40 h-40 bg-neutral-200 flex items-center justify-center">
-                <img
+                <ImageWithFallback
                   src={p.image}
                   alt={p.name}
                   className="object-cover w-full h-full group-hover:scale-105 transition-transform"

@@ -6,6 +6,7 @@ import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuIte
 import { useCartCount } from "@/hooks/useCartCount";
 import { useWishlistCount } from "@/hooks/useWishlistCount";
 import ProductSearch from "@/components/ProductSearch";
+import AuthProfileMenu from "@/components/AuthProfileMenu";
 
 import { categories as categoryList } from "../config/categories";
 
@@ -42,15 +43,12 @@ const Header = () => {
             </DropdownMenuContent>
           </DropdownMenu>
           {user ? (
-            <Link to="/account" className="text-green font-medium hover:text-saffron transition-colors">Account</Link>
+            <AuthProfileMenu />
           ) : (
             <Link to="/auth" className="text-green font-medium hover:text-saffron transition-colors">Sign in</Link>
           )}
           <Link to="/blog" className="text-green font-medium hover:text-saffron transition-colors">
             Blog
-          </Link>
-          <Link to="/account" className="text-green font-medium hover:text-saffron transition-colors">
-            Account
           </Link>
           <Link to="/wishlist" className="relative">
             <Heart className="w-6 h-6 text-rose-500" />

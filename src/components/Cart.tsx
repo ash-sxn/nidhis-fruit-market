@@ -5,6 +5,9 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "./ui/button";
 import { Plus, Minus, ShoppingBag } from "lucide-react";
 import { Link } from "react-router-dom";
+import ImageWithFallback from "@/components/ImageWithFallback";
+import { allProducts } from "@/config/products";
+import { productIdFromName } from "@/lib/product-id";
 
 const fetchCartItems = async () => {
   const userRes = await supabase.auth.getUser();
@@ -50,6 +53,9 @@ const Cart: React.FC = () => {
   if (isLoading) return <div>Loading cart…</div>;
   if (error) return <div>Error loading cart.</div>;
 
+  const catalog = allProducts();
+  const byId = new Map(catalog.map(p => [productIdFromName(p.name), p] as const));
+
   return (
     <div className="max-w-2xl mx-auto py-8">
       <h1 className="text-2xl font-bold mb-6 font-playfair text-saffron">Your Cart</h1>
@@ -64,9 +70,14 @@ const Cart: React.FC = () => {
       ) : (
         <ul className="space-y-6">
           {data.map((item: any) => (
-            <li key={item.id} className="flex items-center justify-between border rounded-md p-4">
-              <div>
-                <div className="font-semibold">Product: {item.product_id}</div>
+            <li key={item.id} className="flex items-center justify-between border rounded-md p-4 gap-4">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded overflow-hidden bg-neutral-100 flex items-center justify-center">
+                  <ImageWithFallback src={byId.get(item.product_id)?.image || "/placeholder.svg"} alt={byId.get(item.product_id)?.name || "Product"} className="w-full h-full object-cover" />
+                </div>
+                <div>
+                  <div className="font-semibold">{byId.get(item.product_id)?.name || "Unknown product"}</div>
+                </div>
               </div>
               <div className="flex items-center gap-2">
                 <Button size="icon" variant="ghost" onClick={() => {
