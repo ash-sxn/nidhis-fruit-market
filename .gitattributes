@@ -1,0 +1,35 @@
+* text=auto
+
+# Text files use LF in repo
+*.js  text eol=lf
+*.ts  text eol=lf
+*.tsx text eol=lf
+*.jsx text eol=lf
+*.css text eol=lf
+*.scss text eol=lf
+*.md  text eol=lf
+*.html text eol=lf
+*.json text eol=lf
+*.yml  text eol=lf
+*.yaml text eol=lf
+*.sql  text eol=lf
+*.toml text eol=lf
+*.env  text eol=lf
+*.example text eol=lf
+*.sh   text eol=lf
+*.bash text eol=lf
+*.svg  text eol=lf
+
+# Windows scripts use CRLF when checked out on Windows
+*.ps1 text eol=crlf
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# Binary files
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.ico binary
+*.lockb binary
