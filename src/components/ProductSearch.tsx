@@ -22,25 +22,25 @@ const staticProductIndex: SearchResult[] = [
   // Nidhis Dry Fruits
   {
     name: "Almond – California [500gm]",
-    image: "/images/dryfruits/almonds.jpg",
+    image: "/images/dryfruits/almond-california.png",
     category: "Nidhis Dry Fruits",
     route: "/category/nidhis-dry-fruits",
   },
   {
     name: "Almond Gurbandi [500gm]",
-    image: "/images/dryfruits/almonds-gurbandi.jpg",
+    image: "/images/dryfruits/almond-gurbandi.jpg",
     category: "Nidhis Dry Fruits",
     route: "/category/nidhis-dry-fruits",
   },
   {
     name: "Black Dates [500gm]",
-    image: "/images/dryfruits/dates.jpg",
+    image: "/images/dryfruits/black-dates.jpg",
     category: "Nidhis Dry Fruits",
     route: "/category/nidhis-dry-fruits",
   },
   {
     name: "Blueberry [250gm]",
-    image: "/images/dryfruits/blueberries-dried.jpg",
+    image: "/images/dryfruits/blueberry.jpg",
     category: "Super Food",
     route: "/category/super-food",
   },
@@ -72,7 +72,7 @@ const staticProductIndex: SearchResult[] = [
   },
   {
     name: "Black Pepper [100gm]",
-    image: "/images/dryfruits/black-pepper.jpg",
+    image: "/images/dryfruits/salt-pepper.jpg",
     category: "Nidhis Whole Spices",
     route: "/category/nidhis-whole-spices",
   },
@@ -91,13 +91,13 @@ const staticProductIndex: SearchResult[] = [
   },
   {
     name: "Cranberry [250gm]",
-    image: "/images/dryfruits/cranberries-dried.jpg",
+    image: "/images/dryfruits/cranberry.jpg",
     category: "Super Food",
     route: "/category/super-food",
   },
   {
     name: "Mixed Fruits, Seeds & Nuts [500gm]",
-    image: "/images/dryfruits/mix-nuts.jpg",
+    image: "/images/dryfruits/mixed-fruits-seeds-nuts.png",
     category: "Super Food",
     route: "/category/super-food",
   },
