@@ -6,32 +6,32 @@ import ImageWithFallback from "@/components/ImageWithFallback";
 const products = [
   {
     name: "Basket of Flavors",
-    image: "/image/dryfruits/mix-nuts.jpg",
+    image: "/images/dryfruits/mix-nuts.jpg",
     price: "₹11,399.00",
   },
   {
     name: "Celebration Crunch Box",
-    image: "/image/dryfruits/gift-box-1.jpg",
+    image: "/images/dryfruits/gift-box-1.jpg",
     price: "₹11,599.00",
   },
   {
     name: "Color of Flavor",
-    image: "/image/dryfruits/assorted-dryfruits.jpg",
+    image: "/images/dryfruits/assorted-dryfruits.jpg",
     price: "₹11,899.00",
   },
   {
     name: "California Almond & Cashew Combo",
-    image: "/image/dryfruits/almond-cashew-combo.jpg",
+    image: "/images/dryfruits/almond-cashew-combo.jpg",
     price: "₹1,999.00",
   },
   {
     name: "Cashew & Raisin Combo (VKI)",
-    image: "/image/dryfruits/cashew-raisin-combo.jpg",
+    image: "/images/dryfruits/cashew-raisin-combo.jpg",
     price: "₹1,849.00",
   },
   {
     name: "Festival Fusion Bites",
-    image: "/image/dryfruits/gift-box-2.jpg",
+    image: "/images/dryfruits/gift-box-2.jpg",
     price: "₹1,425.00",
   },
 ];

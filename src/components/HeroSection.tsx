@@ -2,7 +2,7 @@
 import { motion } from "framer-motion";
 import ImageWithFallback from "@/components/ImageWithFallback";
 
-const heroImage = "/image/dryfruits/hero-platter.jpg";
+const heroImage = "/images/dryfruits/black-dates.jpg";
 
 const HeroSection = () => {
   return (

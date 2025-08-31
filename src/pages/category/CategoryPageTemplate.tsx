@@ -1,4 +1,3 @@
-
 import React from "react";
 import { useProducts } from "@/hooks/useProducts";
 import ProductSection from "@/components/ProductSection";
@@ -10,6 +9,9 @@ interface CategoryPageTemplateProps {
 
 const CategoryPageTemplate: React.FC<CategoryPageTemplateProps> = ({ title }) => {
   const { data: rows = [], isLoading, error } = useProducts(title);
+  const formatInr = (cents: number) =>
+    new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR" }).format(cents / 100);
+
   return (
     <CategoryLayout>
       <div className="min-h-[20vh] flex flex-col items-center justify-center mb-6">
@@ -23,7 +25,7 @@ const CategoryPageTemplate: React.FC<CategoryPageTemplateProps> = ({ title }) =>
       ) : rows.length > 0 ? (
         <ProductSection
           title={title}
-          products={rows.map((r) => ({ name: r.name, image: r.image_url ?? "/placeholder.svg", price: `₹${(r.price_cents/100).toFixed(2)}` }))}
+          products={rows.map((r) => ({ name: r.name, image: r.image_url ?? "/placeholder.svg", price: formatInr(r.price_cents) }))}
         />
       ) : (
         <div className="text-center text-neutral-500 py-10">No products yet. Add some in Supabase.</div>
@@ -33,3 +35,4 @@ const CategoryPageTemplate: React.FC<CategoryPageTemplateProps> = ({ title }) =>
 };
 
 export default CategoryPageTemplate;
+
