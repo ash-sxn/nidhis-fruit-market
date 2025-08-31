@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import ImageWithFallback from "@/components/ImageWithFallback";
 
 // Update to your preferred landing image. Ensure the file exists.
-const heroImage = "/images/dryfruits/landing-welcome-image.jpg";
+const heroImage = "/images/dryfruits/landing-welcome-image.png";
 
 const HeroSection = () => {
   return (

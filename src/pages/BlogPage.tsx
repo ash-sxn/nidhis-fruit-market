@@ -6,7 +6,7 @@ const BLOG_POSTS = [
   {
     id: 1,
     title: "NUTTY GOODNESS",
-    image: "/images/dryfruits/almond-california.png",
+    image: "/images/dryfruits/nutty-goodness.png",
     content: [
       "100 percent farm fresh, handpicked whole Almond kernel",
       "Rich Nourishment: Almonds carry a lot of nutritional elements. These are rich sources of Omega-3, anti-oxidants, vitamins, calcium, iron, and magnesium.",
@@ -21,7 +21,7 @@ const BLOG_POSTS = [
   {
     id: 2,
     title: "A ROYAL NUTTY TREAT",
-    image: "/images/dryfruits/cashew-nut-royal-nutty-treat.jpg",
+    image: "/images/dryfruits/royal-nutty-treat.png",
     content: [
       "Handpicked Farm Fresh whole Cashew Kernels. Wholesome Nutrition- Known as rich man’s food.",
       "Wholesome Nutrition: Cashew nuts are a royal treat. With protein 21.2 %, carbohydrates 22 %, fat 47 %, amino acid and minerals, which are not regularly found in the daily meal, makes them immensely valuable.",
@@ -36,7 +36,7 @@ const BLOG_POSTS = [
   {
     id: 3,
     title: "HAPPY AND WHOLESOME",
-    image: "/images/dryfruits/mixed-fruits-seeds-nuts.png",
+    image: "/images/dryfruits/happy-and-wholesome.png",
     content: [
       "Protein Punch and Fiber Rich: Each of the ingredient is packed with surplus amount of protein and dietary fiber making this mix must have for every health enthusiast especially the vegan ones. With every mouthful, you will receive a bunch of nutrients.",
       "Dried kiwis, dried pineapples, sunflower seeds, pumpkin seeds, watermelon seeds, musk melon seeds, black raisins, cranberries, flaxseeds, almonds, cashew nuts, melon seeds mixed vigorously to create Mixed seeds and nuts Jar.",
