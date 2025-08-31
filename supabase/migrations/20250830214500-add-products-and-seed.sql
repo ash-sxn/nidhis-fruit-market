@@ -16,10 +16,13 @@ create table if not exists public.products (
 -- RLS
 alter table public.products enable row level security;
 
-create policy if not exists "Read active products" on public.products
+-- Policies: drop if present, then create (CREATE POLICY does not support IF NOT EXISTS)
+drop policy if exists "Read active products" on public.products;
+create policy "Read active products" on public.products
 for select using (is_active = true);
 
-create policy if not exists "Admins manage products" on public.products
+drop policy if exists "Admins manage products" on public.products;
+create policy "Admins manage products" on public.products
 for all using (
   exists (
     select 1 from public.user_roles ur
