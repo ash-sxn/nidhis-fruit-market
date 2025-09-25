@@ -4,21 +4,41 @@ import { supabase } from "@/integrations/supabase/client";
 export type ProductRow = {
   id: string;
   name: string;
+  slug: string | null;
   category: string;
   price_cents: number;
+  mrp_cents: number | null;
+  description: string | null;
+  inventory: number;
   image_url: string | null;
+  updated_at: string;
 };
 
-export const useProducts = (category?: string) => {
+type UseProductsOptions = {
+  enabled?: boolean;
+};
+
+export const useProducts = (category?: string, options?: UseProductsOptions) => {
+  const enabled = options?.enabled ?? true;
+
   return useQuery({
     queryKey: ["products", category ?? "all"],
+    enabled,
     queryFn: async () => {
-      let q = supabase.from("products").select("id,name,category,price_cents,image_url").eq("is_active", true);
-      if (category) q = q.eq("category", category);
-      const { data, error } = await q.order("created_at", { ascending: false });
+      if (!enabled) return [] as ProductRow[];
+
+      let query = supabase
+        .from("products")
+        .select("id,name,slug,category,price_cents,mrp_cents,description,inventory,image_url,updated_at")
+        .eq("is_active", true);
+
+      if (category) {
+        query = query.eq("category", category);
+      }
+
+      const { data, error } = await query.order("created_at", { ascending: false });
       if (error) throw error;
       return (data as ProductRow[]) ?? [];
     },
   });
 };
-
