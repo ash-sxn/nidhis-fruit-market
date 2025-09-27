@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client"
 import { Button } from "@/components/ui/button"
 import { useQuery } from "@tanstack/react-query"
 import { formatInrFromCents } from "@/lib/utils"
+import { ensureRazorpay } from "@/lib/razorpay"
 
 const AddressSchema = z.object({
   name: z.string().min(2),
@@ -41,16 +42,6 @@ async function fetchCartWithProducts(): Promise<CartRow[]> {
   return data.map(r => ({ ...r, product: map.get(r.product_id) ?? null }))
 }
 
-const loadRazorpay = () => new Promise<void>((resolve, reject) => {
-  if (document.getElementById('razorpay-sdk')) return resolve()
-  const s = document.createElement('script')
-  s.id = 'razorpay-sdk'
-  s.src = 'https://checkout.razorpay.com/v1/checkout.js'
-  s.onload = () => resolve()
-  s.onerror = () => reject(new Error('Failed to load Razorpay'))
-  document.body.appendChild(s)
-})
-
 export default function CheckoutPage() {
   const { data: cart = [], isLoading } = useQuery({ queryKey: ['cart-with-products'], queryFn: fetchCartWithProducts })
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<AddressInput>({ resolver: zodResolver(AddressSchema) })
@@ -60,7 +51,7 @@ export default function CheckoutPage() {
   const total = subtotal + shipping
 
   const onSubmit = async (values: AddressInput) => {
-    await loadRazorpay()
+    const Razorpay = await ensureRazorpay()
     const { data: auth } = await supabase.auth.getUser()
     if (!auth.user) throw new Error('Login required')
 
@@ -85,22 +76,26 @@ export default function CheckoutPage() {
     if (!resp.ok) throw new Error('Could not create Razorpay order')
     const { orderId, keyId } = await resp.json()
 
-    // @ts-ignore
-    const rp = new window.Razorpay({
+    const rp = new Razorpay({
       key: keyId,
       amount: total,
       currency: 'INR',
       name: 'Nidhis Dry Fruits',
       description: 'Order payment',
       order_id: orderId,
-      prefill: { name: values.name, contact: values.phone },
-      handler: async (response: any) => {
+      prefill: { name: values.name, contact: values.phone, email: auth.user.email ?? undefined },
+      handler: async (response: RazorpayPaymentResponse) => {
         await supabase.from('orders').update({ status: 'paid', payment_ref: response.razorpay_payment_id }).eq('id', orderRow.id)
         const { data: auth2 } = await supabase.auth.getUser()
         if (auth2.user) await supabase.from('cart_items').delete().eq('user_id', auth2.user.id)
         window.location.href = '/account'
       },
-      theme: { color: '#0E7C4A' }
+      theme: { color: '#0E7C4A' },
+      modal: {
+        ondismiss: () => {
+          void supabase.from('orders').update({ status: 'cancelled' }).eq('id', orderRow.id)
+        }
+      }
     })
     rp.open()
   }
