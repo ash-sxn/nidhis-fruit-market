@@ -54,6 +54,9 @@ export default function CheckoutPage() {
     const Razorpay = await ensureRazorpay()
     const { data: auth } = await supabase.auth.getUser()
     if (!auth.user) throw new Error('Login required')
+    const { data: sessionData } = await supabase.auth.getSession()
+    const accessToken = sessionData.session?.access_token
+    if (!accessToken) throw new Error('Session expired')
 
     const address_snapshot = { ...values }
     const { data: orderRow, error: orderError } = await supabase
@@ -72,28 +75,63 @@ export default function CheckoutPage() {
     }))
     if (items.length) await supabase.from('order_items').insert(items)
 
-    const resp = await fetch('/api/razorpay/create-order', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ amount: total, currency: 'INR', receipt: orderRow.id }) })
+    const resp = await fetch('/api/razorpay/create-order', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${accessToken}`
+      },
+      body: JSON.stringify({ receipt: orderRow.id })
+    })
     if (!resp.ok) throw new Error('Could not create Razorpay order')
-    const { orderId, keyId } = await resp.json()
+    const { orderId, keyId, amount: verifiedAmount, currency: verifiedCurrency } = await resp.json() as { orderId: string; keyId: string; amount: number; currency: string }
+    const payableAmount = verifiedAmount ?? total
+    const payableCurrency = verifiedCurrency ?? 'INR'
 
     const rp = new Razorpay({
       key: keyId,
-      amount: total,
-      currency: 'INR',
+      amount: payableAmount,
+      currency: payableCurrency,
       name: 'Nidhis Dry Fruits',
       description: 'Order payment',
       order_id: orderId,
       prefill: { name: values.name, contact: values.phone, email: auth.user.email ?? undefined },
       handler: async (response: RazorpayPaymentResponse) => {
-        await supabase.from('orders').update({ status: 'paid', payment_ref: response.razorpay_payment_id }).eq('id', orderRow.id)
-        const { data: auth2 } = await supabase.auth.getUser()
-        if (auth2.user) await supabase.from('cart_items').delete().eq('user_id', auth2.user.id)
-        window.location.href = '/account'
+        try {
+          const verifyResp = await fetch('/api/razorpay/verify-payment', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${accessToken}`
+            },
+            body: JSON.stringify({
+              orderId: orderRow.id,
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_signature: response.razorpay_signature,
+            })
+          })
+          if (!verifyResp.ok) throw new Error('Payment verification failed')
+
+          const { data: auth2 } = await supabase.auth.getUser()
+          if (auth2.user) await supabase.from('cart_items').delete().eq('user_id', auth2.user.id)
+          window.location.href = '/account'
+        } catch (err) {
+          console.error(err)
+          window.location.href = '/checkout?payment=failed'
+        }
       },
       theme: { color: '#0E7C4A' },
       modal: {
         ondismiss: () => {
-          void supabase.from('orders').update({ status: 'cancelled' }).eq('id', orderRow.id)
+          void fetch('/api/orders/cancel', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${accessToken}`
+            },
+            body: JSON.stringify({ orderId: orderRow.id })
+          }).catch((error) => console.error('Failed to cancel order', error))
         }
       }
     })
@@ -143,4 +181,3 @@ export default function CheckoutPage() {
     </div>
   )
 }
-
