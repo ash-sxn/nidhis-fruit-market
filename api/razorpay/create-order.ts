@@ -1,3 +1,4 @@
+import '../_lib/env.ts'
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { createClient } from '@supabase/supabase-js'
 
@@ -29,16 +30,29 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (!token) return res.status(401).json({ error: 'Missing auth token' })
 
   const { data: authUser, error: authError } = await supabase.auth.getUser(token)
-  if (authError || !authUser?.user) return res.status(401).json({ error: 'Invalid auth token' })
+  if (authError || !authUser?.user) {
+    console.error('[razorpay/create-order] Supabase getUser failed', authError)
+    return res.status(401).json({ error: authError?.message ?? 'Invalid auth token' })
+  }
+
+  const safeKeyId = keyId.trim()
+  const safeKeySecret = keySecret.trim()
 
   const { data: order, error } = await supabase
     .from('orders')
     .select('id,user_id,status,total_cents,currency,order_items:order_items(price_cents_snapshot,quantity)')
     .eq('id', receipt)
-    .single<OrderRow>()
+    .eq('user_id', authUser.user.id)
+    .maybeSingle<OrderRow>()
 
-  if (error || !order) return res.status(404).json({ error: 'Order not found' })
-  if (order.user_id !== authUser.user.id) return res.status(403).json({ error: 'Forbidden' })
+  if (error) {
+    console.error('[razorpay/create-order] Failed to load order', error)
+    return res.status(404).json({ error: 'Order not found' })
+  }
+  if (!order) {
+    console.error('[razorpay/create-order] Order not found for user', { receipt, userId: authUser.user.id })
+    return res.status(404).json({ error: 'Order not found' })
+  }
   if (order.status !== 'pending') return res.status(400).json({ error: 'Order is not pending' })
 
   const computedAmount = (order.order_items ?? [])
@@ -59,7 +73,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   const currency = order.currency || 'INR'
 
-  const basic = Buffer.from(`${keyId}:${keySecret}`).toString('base64')
+  const basic = Buffer.from(`${safeKeyId}:${safeKeySecret}`).toString('base64')
   const resp = await fetch('https://api.razorpay.com/v1/orders', {
     method: 'POST',
     headers: { 'Authorization': `Basic ${basic}`, 'Content-Type': 'application/json' },
@@ -71,6 +85,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     })
   })
   const data = await resp.json()
-  if (!resp.ok) return res.status(resp.status).json(data)
-  return res.status(200).json({ orderId: data.id, keyId, amount, currency })
+  if (!resp.ok) {
+    console.error('[razorpay/create-order] Razorpay error', resp.status, data)
+    return res.status(resp.status).json(data)
+  }
+  return res.status(200).json({ orderId: data.id, keyId: safeKeyId, amount, currency })
 }

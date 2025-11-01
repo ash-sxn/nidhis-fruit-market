@@ -157,6 +157,16 @@ Row‑Level Security:
 
 ---
 
+## Incident Log
+
+### 2024-11-01 – Razorpay authentication failures during checkout
+- **Impact:** Razorpay modal failed to open; shoppers received HTTP 401/403 on `/api/razorpay/create-order`, blocking payments during client testing via ngrok.
+- **Root cause:** API routes loaded stale environment variables, so Razorpay rejected credentials and Supabase lookups mismatched the authenticated user.
+- **Resolution:** Added centralized env loader with overrides, improved checkout error handling, tightened order ownership checks, rotated Razorpay keys, and verified via direct API call.
+- **Follow up:** Keep `.env.local` authoritative, restart dev servers after secret changes, prefer Razorpay test keys for early testing, and monitor `vercel dev` logs for 4xx responses.
+
+---
+
 ## QA & Testing
 - [ ] Unit tests for hooks/utils (React Testing Library)
 - [ ] E2E tests (Playwright) covering add‑to‑cart, checkout happy path, login
@@ -210,4 +220,3 @@ Notes:
 - Prefer Slug‑based routing for product details; ensure unique `slug`.
 
 This PRD is a living document. Update checkboxes and scope as milestones are reached.
-

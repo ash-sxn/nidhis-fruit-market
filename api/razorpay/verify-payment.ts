@@ -1,6 +1,9 @@
+import '../_lib/env.ts'
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import crypto from 'crypto'
 import { createClient } from '@supabase/supabase-js'
+import { sendOrderConfirmationEmail } from '../_lib/email'
+import { createShiprocketShipment, isShiprocketConfigured } from '../_lib/shiprocket'
 
 type VerifyPayload = {
   orderId?: string
@@ -14,6 +17,8 @@ type OrderRow = {
   user_id: string
   status: string
   payment_ref: string | null
+  coupon_id?: string | null
+  email_sent_at?: string | null
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -53,7 +58,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   const { data: order, error: fetchError } = await supabase
     .from('orders')
-    .select('id,user_id,status,payment_ref')
+    .select('id,user_id,status,payment_ref,coupon_id,email_sent_at')
     .eq('id', orderId)
     .maybeSingle<OrderRow>()
 
@@ -70,11 +75,46 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     .update({ status: 'paid', payment_ref: razorpay_payment_id })
     .eq('id', orderId)
     .eq('status', 'pending')
-    .select('id')
-    .maybeSingle()
+    .select('id,coupon_id,user_id,email_sent_at')
+    .maybeSingle<OrderRow>()
 
   if (updateError) return res.status(500).json({ error: 'Failed to mark order paid' })
   if (!data) return res.status(409).json({ error: 'Order already processed' })
+
+  if (data.coupon_id) {
+    try {
+      const { data: couponRow } = await supabase
+        .from('coupons')
+        .select('used_count')
+        .eq('id', data.coupon_id)
+        .maybeSingle()
+      if (couponRow) {
+        await supabase
+          .from('coupons')
+          .update({ used_count: (couponRow.used_count ?? 0) + 1 })
+          .eq('id', data.coupon_id)
+      }
+    } catch (err) {
+      console.error('Failed to increment coupon usage', err)
+    }
+  }
+
+  if (!data.email_sent_at) {
+    try {
+      await sendOrderConfirmationEmail(orderId)
+      await supabase.from('orders').update({ email_sent_at: new Date().toISOString() }).eq('id', orderId)
+    } catch (err) {
+      console.error('Failed to send confirmation email', err)
+    }
+  }
+
+  if (isShiprocketConfigured()) {
+    try {
+      await createShiprocketShipment(orderId)
+    } catch (err) {
+      console.error('Failed to create Shiprocket shipment', err)
+    }
+  }
 
   return res.status(200).json({ ok: true })
 }

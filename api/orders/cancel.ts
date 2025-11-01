@@ -1,3 +1,4 @@
+import '../_lib/env.ts'
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { createClient } from '@supabase/supabase-js'
 
@@ -34,6 +35,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   if (error) return res.status(500).json({ error: 'Failed to cancel order' })
   if (!data) return res.status(409).json({ error: 'Order not cancellable' })
+
+  try {
+    await supabase.rpc('restock_order_inventory', { p_order_id: orderId })
+  } catch (err) {
+    console.error('Failed to restock inventory', err)
+  }
 
   return res.status(200).json({ ok: true })
 }
