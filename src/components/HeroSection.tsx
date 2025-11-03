@@ -1,8 +1,9 @@
 
 import { motion } from "framer-motion";
+import ImageWithFallback from "@/components/ImageWithFallback";
 
-const heroImage =
-  "https://images.unsplash.com/photo-1618160702438-9b02ab6515c9?auto=format&fit=crop&w=800&q=80";
+// Update to your preferred landing image. Ensure the file exists.
+const heroImage = "/images/dryfruits/landing-welcome-image.png";
 
 const HeroSection = () => {
   return (
@@ -46,7 +47,7 @@ const HeroSection = () => {
           transition={{ delay: 0.3, duration: 0.7, type: "spring" }}
           className="flex-1 flex justify-center items-center"
         >
-          <img
+          <ImageWithFallback
             src={heroImage}
             alt="Premium Dry Fruits Platter"
             className="rounded-xl shadow-xl w-[340px] md:w-[440px] object-cover border border-gold bg-white"

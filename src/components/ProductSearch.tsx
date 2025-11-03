@@ -1,123 +1,54 @@
+import React, { useState, useMemo } from "react"
+import { Input } from "@/components/ui/input"
+import { Search } from "lucide-react"
+import { useNavigate } from "react-router-dom"
+import { useProducts } from "@/hooks/useProducts"
 
-import React, { useState, useMemo } from "react";
-import { Input } from "@/components/ui/input";
-import { Search } from "lucide-react";
-import { useNavigate } from "react-router-dom";
-
-// Import all products statically. In a real app, this would be fetched.
-import { default as IndexPage } from "@/pages/Index";
-
-// Helper type for Product
-type Product = {
-  name: string;
-  image: string;
-  price: string | { original: string; sale: string };
-};
+const categoryRouteMap: Record<string, string> = {
+  "Nidhis Dry Fruits": "/category/nidhis-dry-fruits",
+  "Nidhis Spices": "/category/nidhis-spices",
+  "Nidhis Whole Spices": "/category/nidhis-whole-spices",
+  "Super Food": "/category/super-food",
+  "Bestsellers": "/category/diwali-gifting",
+  "Gift Boxes": "/category/festival-gifting",
+  "Combos": "/category/dry-fruits-combo",
+}
 
 type SearchResult = {
-  name: string;
-  category: string;
-  image: string;
-  route: string;
-};
-
-const staticProductIndex: SearchResult[] = [
-  // Nidhis Dry Fruits
-  {
-    name: "Almond – California [500gm]",
-    image: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=400&q=80",
-    category: "Nidhis Dry Fruits",
-    route: "/category/nidhis-dry-fruits",
-  },
-  {
-    name: "Almond Gurbandi [500gm]",
-    image: "https://images.unsplash.com/photo-1450370364277-5ae5ce37c6b0?auto=format&fit=crop&w=400&q=80",
-    category: "Nidhis Dry Fruits",
-    route: "/category/nidhis-dry-fruits",
-  },
-  {
-    name: "Black Dates [500gm]",
-    image: "https://images.unsplash.com/photo-1465101162946-4377e57745c3?auto=format&fit=crop&w=400&q=80",
-    category: "Nidhis Dry Fruits",
-    route: "/category/nidhis-dry-fruits",
-  },
-  {
-    name: "Blueberry [250gm]",
-    image: "https://images.unsplash.com/photo-1464983953574-0892a716854b?auto=format&fit=crop&w=400&q=80",
-    category: "Super Food",
-    route: "/category/super-food",
-  },
-  // Nidhis Spices
-  {
-    name: "Coriander Powder [100gm]",
-    image: "https://images.unsplash.com/photo-1524594154909-6ff45b1b5c92?auto=format&fit=crop&w=400&q=80",
-    category: "Nidhis Spices",
-    route: "/category/nidhis-spices",
-  },
-  {
-    name: "Cumin Powder [100gm]",
-    image: "https://images.unsplash.com/photo-1502741347565-179b3b6b4882?auto=format&fit=crop&w=400&q=80",
-    category: "Nidhis Spices",
-    route: "/category/nidhis-spices",
-  },
-  {
-    name: "Jain Sabji Masala [100gm]",
-    image: "https://images.unsplash.com/photo-1500315331616-db9a6c62b69e?auto=format&fit=crop&w=400&q=80",
-    category: "Nidhis Spices",
-    route: "/category/nidhis-spices",
-  },
-  // Nidhis Whole Spices
-  {
-    name: "Black Cardamom [100gm]",
-    image: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=400&q=80",
-    category: "Nidhis Whole Spices",
-    route: "/category/nidhis-whole-spices",
-  },
-  {
-    name: "Black Pepper [100gm]",
-    image: "https://images.unsplash.com/photo-1464983953574-0892a716854b?auto=format&fit=crop&w=400&q=80",
-    category: "Nidhis Whole Spices",
-    route: "/category/nidhis-whole-spices",
-  },
-  {
-    name: "Green Cardamom [100gm]",
-    image: "https://images.unsplash.com/photo-1519864600265-abb23847ef2c?auto=format&fit=crop&w=400&q=80",
-    category: "Nidhis Whole Spices",
-    route: "/category/nidhis-whole-spices",
-  },
-  // Super Food
-  {
-    name: "Chilgoza [250gm]",
-    image: "https://images.unsplash.com/photo-1500315331616-db9a6c62b69e?auto=format&fit=crop&w=400&q=80",
-    category: "Super Food",
-    route: "/category/super-food",
-  },
-  {
-    name: "Cranberry [250gm]",
-    image: "https://images.unsplash.com/photo-1464983953574-0892a716854b?auto=format&fit=crop&w=400&q=80",
-    category: "Super Food",
-    route: "/category/super-food",
-  },
-  {
-    name: "Mixed Fruits, Seeds & Nuts [500gm]",
-    image: "https://images.unsplash.com/photo-1465101162946-4377e57745c3?auto=format&fit=crop&w=400&q=80",
-    category: "Super Food",
-    route: "/category/super-food",
-  },
-  // Add more as needed from your sections
-];
+  id: string
+  name: string
+  category: string
+  image: string
+  route: string
+}
 
 const ProductSearch: React.FC = () => {
-  const [query, setQuery] = useState("");
-  const [focused, setFocused] = useState(false);
-  const navigate = useNavigate();
+  const [query, setQuery] = useState("")
+  const [focused, setFocused] = useState(false)
+  const navigate = useNavigate()
+  const { data: rows = [], isLoading } = useProducts()
+
+  const searchIndex = useMemo<SearchResult[]>(() => {
+    return rows.map((row) => ({
+      id: row.id,
+      name: row.name,
+      category: row.category,
+      image: row.image_url ?? "/placeholder.svg",
+      route: categoryRouteMap[row.category] ?? "#",
+    }))
+  }, [rows])
 
   const results = useMemo(() => {
-    if (!query.trim()) return [];
-    return staticProductIndex.filter((p) =>
-      p.name.toLowerCase().includes(query.trim().toLowerCase())
-    );
-  }, [query]);
+    const trimmed = query.trim().toLowerCase()
+    if (!trimmed) return []
+    return searchIndex.filter((product) => product.name.toLowerCase().includes(trimmed))
+  }, [query, searchIndex])
+
+  const handleNavigate = (result: SearchResult) => {
+    if (result.route === "#") return
+    navigate(result.route)
+    setQuery("")
+  }
 
   return (
     <div className="relative w-full max-w-md flex-1 mx-auto">
@@ -136,16 +67,15 @@ const ProductSearch: React.FC = () => {
       </div>
       {focused && query.length > 0 && (
         <div className="absolute left-0 mt-2 w-full bg-white rounded-lg shadow-lg z-50 max-h-72 overflow-auto border border-green/30">
-          {results.length > 0 ? (
+          {isLoading ? (
+            <div className="px-4 py-3 text-neutral-400 text-sm">Searching...</div>
+          ) : results.length > 0 ? (
             <ul className="divide-y divide-neutral-100">
               {results.map((result) => (
                 <li
-                  key={result.name}
+                  key={result.id}
                   className="flex items-center gap-3 px-4 py-2 cursor-pointer hover:bg-green/10"
-                  onMouseDown={() => {
-                    navigate(result.route);
-                    setQuery("");
-                  }}
+                  onMouseDown={() => handleNavigate(result)}
                 >
                   <img
                     src={result.image}
@@ -160,15 +90,12 @@ const ProductSearch: React.FC = () => {
               ))}
             </ul>
           ) : (
-            <div className="px-4 py-3 text-neutral-400 text-sm">
-              No products found.
-            </div>
+            <div className="px-4 py-3 text-neutral-400 text-sm">No products found.</div>
           )}
         </div>
       )}
     </div>
-  );
-};
+  )
+}
 
-export default ProductSearch;
-
+export default ProductSearch

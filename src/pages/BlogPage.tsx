@@ -6,7 +6,7 @@ const BLOG_POSTS = [
   {
     id: 1,
     title: "NUTTY GOODNESS",
-    image: "/photo-1618160702438-9b02ab6515c9", // black and brown round fruit on brown wooden plate
+    image: "/images/dryfruits/nutty-goodness.png",
     content: [
       "100 percent farm fresh, handpicked whole Almond kernel",
       "Rich Nourishment: Almonds carry a lot of nutritional elements. These are rich sources of Omega-3, anti-oxidants, vitamins, calcium, iron, and magnesium.",
@@ -21,7 +21,7 @@ const BLOG_POSTS = [
   {
     id: 2,
     title: "A ROYAL NUTTY TREAT",
-    image: "/photo-1493962853295-0fd70327578a", // brown ox on mountain (closest to "cashew" royalty as placeholder)
+    image: "/images/dryfruits/royal-nutty-treat.png",
     content: [
       "Handpicked Farm Fresh whole Cashew Kernels. Wholesome Nutrition- Known as rich man’s food.",
       "Wholesome Nutrition: Cashew nuts are a royal treat. With protein 21.2 %, carbohydrates 22 %, fat 47 %, amino acid and minerals, which are not regularly found in the daily meal, makes them immensely valuable.",
@@ -36,7 +36,7 @@ const BLOG_POSTS = [
   {
     id: 3,
     title: "HAPPY AND WHOLESOME",
-    image: "/photo-1582562124811-c09040d0a901", // orange and white tabby cat lying on brown and black floral textile (fun & happy placeholder)
+    image: "/images/dryfruits/happy-and-wholesome.png",
     content: [
       "Protein Punch and Fiber Rich: Each of the ingredient is packed with surplus amount of protein and dietary fiber making this mix must have for every health enthusiast especially the vegan ones. With every mouthful, you will receive a bunch of nutrients.",
       "Dried kiwis, dried pineapples, sunflower seeds, pumpkin seeds, watermelon seeds, musk melon seeds, black raisins, cranberries, flaxseeds, almonds, cashew nuts, melon seeds mixed vigorously to create Mixed seeds and nuts Jar.",
@@ -56,8 +56,10 @@ function getPostById(id: number) {
 
 const BlogPostCard: React.FC<{ post: typeof BLOG_POSTS[0] }> = ({ post }) => (
   <article className="bg-white shadow-sm rounded-xl border mb-8 overflow-hidden">
+    {/* Fallback to placeholder if local image not present yet */}
     <img
       src={post.image}
+      onError={(e) => { (e.currentTarget as HTMLImageElement).src = "/placeholder.svg"; }}
       alt={post.title}
       className="w-full h-56 object-cover"
       style={{ objectPosition: "center" }}

@@ -21,6 +21,8 @@ import BlogPage from "./pages/BlogPage";
 import Cart from "./components/Cart";
 import Wishlist from "./components/Wishlist";
 import AccountPage from "./pages/AccountPage";
+import CheckoutPage from "./pages/CheckoutPage";
+import ProductDetailPage from "./pages/ProductDetailPage";
 
 const queryClient = new QueryClient();
 
@@ -70,6 +72,8 @@ const App = () => (
           <Route path="/cart" element={<Cart />} />
           <Route path="/wishlist" element={<Wishlist />} />
           <Route path="/account" element={<AccountPage />} />
+          <Route path="/checkout" element={<CheckoutPage />} />
+          <Route path="/product/:slug" element={<ProductDetailPage />} />
           {/* Example protected route: */}
           {/* <Route path="/dashboard" element={<RequireAuth><DashboardPage /></RequireAuth>} /> */}
           <Route path="*" element={<NotFound />} />
