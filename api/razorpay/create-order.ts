@@ -13,7 +13,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const resp = await fetch('https://api.razorpay.com/v1/orders', {
     method: 'POST',
     headers: { 'Authorization': `Basic ${basic}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ amount, currency, receipt })
+    body: JSON.stringify({
+      amount,
+      currency,
+      receipt,
+      notes: { receipt }
+    })
   })
   const data = await resp.json()
   if (!resp.ok) return res.status(resp.status).json(data)
