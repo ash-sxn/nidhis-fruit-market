@@ -41,6 +41,7 @@ const Index = () => {
     slug: row.slug ?? undefined,
     originalPriceCents: row.mrp_cents ?? undefined,
     description: row.description ?? '',
+    inventory: row.inventory ?? null,
   }))
 
   return (

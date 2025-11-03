@@ -6,6 +6,7 @@ import { Plus, Minus, ShoppingBag } from "lucide-react"
 import { Link } from "react-router-dom"
 import ImageWithFallback from "@/components/ImageWithFallback"
 import { formatInrFromCents } from "@/lib/utils"
+import { toast } from "@/components/ui/use-toast"
 
 type CartItem = {
   id: string
@@ -17,6 +18,7 @@ type CartItem = {
     name: string
     image_url: string | null
     price_cents: number
+    inventory: number | null
   } | null
 }
 
@@ -38,7 +40,7 @@ const fetchCartItems = async (): Promise<CartItem[]> => {
   const productIds = Array.from(new Set(data.map((item) => item.product_id)))
   const { data: productRows, error: productError } = await supabase
     .from("products")
-    .select("id, name, image_url, price_cents")
+    .select("id, name, image_url, price_cents, inventory")
     .in("id", productIds)
 
   if (productError) throw productError
@@ -56,8 +58,18 @@ const removeCartItem = async (id: string) => {
   if (error) throw error
 }
 
-const updateCartItemQty = async ({ id, qty }: { id: string; qty: number }) => {
-  const { error } = await supabase.from("cart_items").update({ quantity: qty }).eq("id", id)
+const updateCartItemQty = async ({ id, qty, product_id }: { id: string; qty: number; product_id: string }) => {
+  const { data: product, error: productError } = await supabase
+    .from('products')
+    .select('inventory, name')
+    .eq('id', product_id)
+    .maybeSingle()
+  if (productError) throw productError
+  const available = product?.inventory ?? 0
+  if (qty > available) {
+    throw new Error(`Only ${available} left for ${product?.name ?? 'this product'}`)
+  }
+  const { error } = await supabase.from('cart_items').update({ quantity: qty }).eq('id', id)
   if (error) throw error
 }
 
@@ -80,6 +92,9 @@ const Cart: React.FC = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["cart-items"] })
     },
+    onError: (err: any) => {
+      toast({ title: 'Could not update quantity', description: err?.message ?? 'Try again later', variant: 'destructive' })
+    }
   })
 
   if (isLoading) return <div>Loading cart...</div>
@@ -137,8 +152,11 @@ const Cart: React.FC = () => {
                       size="icon"
                       variant="ghost"
                       onClick={() => {
-                        if (item.quantity > 1) qtyMutation.mutate({ id: item.id, qty: item.quantity - 1 })
-                        else removeMutation.mutate(item.id)
+                        if (item.quantity > 1) {
+                          qtyMutation.mutate({ id: item.id, qty: item.quantity - 1, product_id: item.product_id })
+                        } else {
+                          removeMutation.mutate(item.id)
+                        }
                       }}
                       disabled={qtyMutation.isPending || removeMutation.isPending}
                     >
@@ -148,7 +166,18 @@ const Cart: React.FC = () => {
                     <Button
                       size="icon"
                       variant="ghost"
-                      onClick={() => qtyMutation.mutate({ id: item.id, qty: item.quantity + 1 })}
+                      onClick={() => {
+                        const max = item.product?.inventory ?? Number.POSITIVE_INFINITY
+                        if (item.product && max !== null && max !== undefined && item.quantity >= max) {
+                          toast({
+                            title: 'Limit reached',
+                            description: `Only ${max} left in stock`,
+                            variant: 'destructive'
+                          })
+                          return
+                        }
+                        qtyMutation.mutate({ id: item.id, qty: item.quantity + 1, product_id: item.product_id })
+                      }}
                       disabled={qtyMutation.isPending}
                     >
                       <Plus className="w-4 h-4" />
@@ -163,6 +192,9 @@ const Cart: React.FC = () => {
                       Remove
                     </Button>
                   </div>
+                  {item.product?.inventory !== null && item.quantity >= (item.product.inventory ?? 0) && (
+                    <p className="text-xs text-rose-500 mt-2">Only {item.product.inventory} left in stock.</p>
+                  )}
                 </li>
               )
             })}

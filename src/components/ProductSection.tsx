@@ -16,6 +16,7 @@ export type ProductSectionItem = {
   originalPriceCents?: number | null
   slug?: string
   description?: string
+  inventory?: number | null
 }
 
 interface ProductSectionProps {
@@ -64,11 +65,12 @@ const ProductSection: React.FC<ProductSectionProps> = ({
             const primaryPrice = formatInrFromCents(product.priceCents)
             const hasSale = product.originalPriceCents != null && product.originalPriceCents > product.priceCents
             const salePrice = hasSale ? formatInrFromCents(product.originalPriceCents!) : null
+            const isOutOfStock = product.inventory !== undefined && product.inventory !== null && product.inventory <= 0
 
             const productUrl = product.slug ? `/product/${product.slug}` : undefined
 
             const imageNode = (
-              <div className="overflow-hidden rounded-lg mb-3 w-40 h-40 bg-neutral-200 flex items-center justify-center">
+              <div className="overflow-hidden rounded-lg mb-3 w-40 h-40 bg-neutral-200 flex items-center justify-center mx-auto">
                 <ImageWithFallback
                   src={product.image ?? '/placeholder.svg'}
                   alt={product.name}
@@ -112,22 +114,25 @@ const ProductSection: React.FC<ProductSectionProps> = ({
                 </div>
                 <div className="flex gap-3 items-center w-full mt-auto">
                   <Button
-                    className="bg-green text-white hover:bg-green/80 px-4 flex-1"
+                    className="bg-green text-white hover:bg-green/80 px-4 flex-1 disabled:bg-neutral-400"
                     onClick={() => handleAddToCart(product)}
-                    disabled={addToCart.isPending}
+                    disabled={addToCart.isPending || isOutOfStock}
                   >
-                    <ShoppingCart className="mr-2 w-4 h-4" /> Add to cart
+                    {isOutOfStock ? 'Out of stock' : <><ShoppingCart className="mr-2 w-4 h-4" /> Add to cart</>}
                   </Button>
                   <button
                     className="rounded-full p-2 border border-green bg-white hover:bg-green/10 text-green transition-colors flex items-center"
                     title="Add to wishlist"
                     onClick={() => handleAddToWishlist(product)}
-                    disabled={addToWishlist.isPending}
+                    disabled={addToWishlist.isPending || isOutOfStock}
                     type="button"
                   >
                     <Heart className="w-5 h-5" />
                   </button>
                 </div>
+                {isOutOfStock && (
+                  <p className="mt-2 text-xs text-rose-500">Restocking soon</p>
+                )}
               </div>
             )
           })}
@@ -138,4 +143,3 @@ const ProductSection: React.FC<ProductSectionProps> = ({
 }
 
 export default ProductSection
-

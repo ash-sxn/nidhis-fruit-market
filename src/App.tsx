@@ -3,7 +3,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation, Outlet } from "react-router-dom";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import DiwaliGiftingPage from "./pages/category/diwali-gifting";
@@ -23,6 +23,14 @@ import Wishlist from "./components/Wishlist";
 import AccountPage from "./pages/AccountPage";
 import CheckoutPage from "./pages/CheckoutPage";
 import ProductDetailPage from "./pages/ProductDetailPage";
+import AdminLayout from "./pages/admin/AdminLayout";
+import AdminDashboard from "./pages/admin/AdminDashboard";
+import AdminProductsPage from "./pages/admin/AdminProductsPage";
+import AdminOrdersPage from "./pages/admin/AdminOrdersPage";
+import AdminMfaPage from "./pages/admin/AdminMfaPage";
+import AdminUsersPage from "./pages/admin/AdminUsersPage";
+import ProductsPage from "./pages/ProductsPage";
+import { useAdminAccess } from "@/hooks/useAdminAccess";
 
 const queryClient = new QueryClient();
 
@@ -50,6 +58,34 @@ const RequireAuth: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   return authed ? <>{children}</> : <Navigate to="/auth" />;
 };
 
+const AdminGuard: React.FC = () => {
+  const location = useLocation();
+  const { loading, isAdmin, needsAuth, needsMfa } = useAdminAccess();
+  const isMfaRoute = location.pathname.startsWith('/admin/mfa');
+
+  if (loading) {
+    return <div className="min-h-[50vh] flex items-center justify-center text-saffron font-bold">Checking access...</div>;
+  }
+
+  if (needsAuth) {
+    return <Navigate to={`/auth?redirect=${encodeURIComponent(location.pathname)}`} replace />;
+  }
+
+  if (!isAdmin) {
+    return <Navigate to="/" replace />;
+  }
+
+  if (needsMfa && !isMfaRoute) {
+    return <Navigate to="/admin/mfa" replace />;
+  }
+
+  if (!needsMfa && isMfaRoute) {
+    return <Navigate to="/admin" replace />;
+  }
+
+  return <Outlet />;
+};
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
@@ -68,12 +104,22 @@ const App = () => (
           <Route path="/category/nidhis-spices" element={<NidhisSpicesPage />} />
           <Route path="/category/nidhis-whole-spices" element={<NidhisWholeSpicesPage />} />
           <Route path="/category/super-food" element={<SuperFoodPage />} />
+          <Route path="/products" element={<ProductsPage />} />
           <Route path="/blog" element={<BlogPage />} />
           <Route path="/cart" element={<Cart />} />
           <Route path="/wishlist" element={<Wishlist />} />
           <Route path="/account" element={<AccountPage />} />
           <Route path="/checkout" element={<CheckoutPage />} />
           <Route path="/product/:slug" element={<ProductDetailPage />} />
+          <Route path="/admin" element={<AdminGuard />}>
+            <Route path="mfa" element={<AdminMfaPage />} />
+            <Route element={<AdminLayout />}>
+              <Route index element={<AdminDashboard />} />
+              <Route path="products" element={<AdminProductsPage />} />
+              <Route path="orders" element={<AdminOrdersPage />} />
+              <Route path="team" element={<AdminUsersPage />} />
+            </Route>
+          </Route>
           {/* Example protected route: */}
           {/* <Route path="/dashboard" element={<RequireAuth><DashboardPage /></RequireAuth>} /> */}
           <Route path="*" element={<NotFound />} />

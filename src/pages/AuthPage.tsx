@@ -31,26 +31,49 @@ const AuthPage: React.FC = () => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
       setUser(session?.user ?? null);
-      if (session?.user) {
-        navigate("/");
-      }
     });
     supabase.auth.getSession().then(({ data }) => {
       setSession(data.session);
       setUser(data.session?.user ?? null);
-      if (data.session?.user) {
-        navigate("/");
-      }
     });
     return () => subscription.unsubscribe();
     // eslint-disable-next-line
   }, [navigate]);
 
+  const [handledRedirect, setHandledRedirect] = useState(false);
+
   useEffect(() => {
-    if (user) {
-      navigate("/");
+    if (!session?.user || handledRedirect) return;
+
+    async function routeAfterLogin() {
+      try {
+        const { data: roles, error } = await supabase
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', session.user!.id)
+
+        const isAdmin = !error && !!roles?.some((r) => r.role === 'admin');
+
+        if (isAdmin) {
+          let target = '/admin/mfa'
+          try {
+            const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel()
+            target = aal?.currentLevel === 'aal2' ? '/admin' : '/admin/mfa'
+          } catch (err) {
+            console.error('Failed to check MFA level after login', err)
+            target = '/admin/mfa'
+          }
+          navigate(target, { replace: true });
+        } else {
+          navigate('/', { replace: true });
+        }
+      } finally {
+        setHandledRedirect(true);
+      }
     }
-  }, [user, navigate]);
+
+    routeAfterLogin();
+  }, [session, handledRedirect, navigate]);
 
   // Auth
   const handleSignup = async (e: React.FormEvent) => {
@@ -266,4 +289,3 @@ const AuthPage: React.FC = () => {
 };
 
 export default AuthPage;
-

@@ -134,10 +134,13 @@ const ProductDetailPage: React.FC = () => {
                     </p>
                   </div>
                   <div className="flex flex-wrap gap-4">
+                    {(product.inventory ?? 0) <= 0 && (
+                      <div className="w-full text-sm text-rose-500">Currently out of stock.</div>
+                    )}
                     <button
                       className="inline-flex items-center justify-center rounded-full bg-green text-white px-6 py-3 font-semibold shadow hover:bg-green/85 transition-colors"
                       onClick={handleAddToCart}
-                      disabled={addToCart.isPending}
+                      disabled={addToCart.isPending || (product.inventory ?? 0) <= 0}
                       type="button"
                     >
                       <ShoppingCart className="w-5 h-5 mr-2" /> Add to cart
@@ -145,16 +148,16 @@ const ProductDetailPage: React.FC = () => {
                     <button
                       className="inline-flex items-center justify-center rounded-full border border-green text-green px-6 py-3 font-semibold hover:bg-green/10 transition-colors"
                       onClick={handleAddToWishlist}
-                      disabled={addToWishlist.isPending}
+                      disabled={addToWishlist.isPending || (product.inventory ?? 0) <= 0}
                       type="button"
                     >
                       <Heart className="w-5 h-5 mr-2" /> Add to wishlist
                     </button>
                   </div>
                   <div className="text-sm text-neutral-500 space-y-1">
-                    <p>• 100% natural ingredients</p>
-                    <p>• Secure packaging to maintain crunch and aroma</p>
-                    <p>• Fast shipping across India</p>
+                    <p> 100% natural ingredients</p>
+                    <p> Secure packaging to maintain crunch and aroma</p>
+                    <p> Fast shipping across India</p>
                     {typeof product.inventory === 'number' && product.inventory <= 10 && (
                       <p className="text-rose-500 font-medium">Only {product.inventory} left in stock</p>
                     )}

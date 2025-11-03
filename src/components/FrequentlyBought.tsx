@@ -16,6 +16,7 @@ const FrequentlyBought = () => {
     priceCents: row.price_cents,
     slug: row.slug ?? undefined,
     originalPriceCents: row.mrp_cents ?? undefined,
+    inventory: row.inventory ?? null,
   }))
 
   return (
@@ -35,31 +36,34 @@ const FrequentlyBought = () => {
           <div className="text-center text-neutral-500">No featured products yet.</div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8">
-            {products.map((product) => (
-              <div
-                key={product.id}
-                className="rounded-xl bg-neutral-50 shadow-card hover:shadow-lg transition-shadow hover:-translate-y-1 p-4 flex flex-col items-center border border-gold/10 group"
-              >
-                <div className="overflow-hidden rounded-lg mb-3 w-40 h-40 bg-neutral-200 flex items-center justify-center">
-                  <ImageWithFallback
-                    src={product.image}
-                    alt={product.name}
-                    className="object-cover w-full h-full group-hover:scale-105 transition-transform"
-                  />
+            {products.map((product) => {
+              const outOfStock = (product.inventory ?? 0) <= 0
+              return (
+                <div
+                  key={product.id}
+                  className="rounded-xl bg-neutral-50 shadow-card hover:shadow-lg transition-shadow hover:-translate-y-1 p-4 flex flex-col items-center border border-gold/10 group"
+                >
+                  <div className="overflow-hidden rounded-lg mb-3 w-40 h-40 bg-neutral-200 flex items-center justify-center">
+                    <ImageWithFallback
+                      src={product.image}
+                      alt={product.name}
+                      className="object-cover w-full h-full group-hover:scale-105 transition-transform"
+                    />
+                  </div>
+                  <div className="flex flex-col flex-1 items-center justify-between w-full">
+                    <h3 className="text-lg font-bold font-playfair text-green mb-1 text-center">{product.name}</h3>
+                    <p className="text-saffron font-semibold text-base mb-2">{formatInrFromCents(product.priceCents)}</p>
+                    <Button
+                      className="bg-green text-white hover:bg-green/80 mt-auto px-6 disabled:bg-neutral-400"
+                      onClick={() => addToCart.mutate({ product_id: product.id, quantity: 1 })}
+                      disabled={addToCart.isPending || outOfStock}
+                    >
+                      {outOfStock ? 'Out of stock' : 'Add to cart'}
+                    </Button>
+                  </div>
                 </div>
-                <div className="flex flex-col flex-1 items-center justify-between w-full">
-                  <h3 className="text-lg font-bold font-playfair text-green mb-1 text-center">{product.name}</h3>
-                  <p className="text-saffron font-semibold text-base mb-2">{formatInrFromCents(product.priceCents)}</p>
-                  <Button
-                    className="bg-green text-white hover:bg-green/80 mt-auto px-6"
-                    onClick={() => addToCart.mutate({ product_id: product.id, quantity: 1 })}
-                    disabled={addToCart.isPending}
-                  >
-                    Add to cart
-                  </Button>
-                </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
         )}
       </div>

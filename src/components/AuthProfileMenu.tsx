@@ -10,6 +10,7 @@ const AuthProfileMenu: React.FC = () => {
   const [profile, setProfile] = useState<{ username?: string; avatar_url?: string } | null>(null);
   const [dropdown, setDropdown] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
   const navigate = useNavigate();
 
   // Get current user/session
@@ -31,9 +32,10 @@ const AuthProfileMenu: React.FC = () => {
   useEffect(() => {
     if (!user) {
       setProfile(null);
+      setIsAdmin(false);
       return;
     }
-    
+
     const fetchProfile = async () => {
       try {
         console.log("Fetching profile for user:", user.id);
@@ -55,6 +57,27 @@ const AuthProfileMenu: React.FC = () => {
     };
     
     fetchProfile();
+  }, [user]);
+
+  useEffect(() => {
+    if (!user) {
+      setIsAdmin(false);
+      return;
+    }
+    const checkAdmin = async () => {
+      const { data, error } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', user.id)
+
+      if (error) {
+        console.error('Failed to load roles', error);
+        setIsAdmin(false);
+        return;
+      }
+      setIsAdmin(!!data?.some((row) => row.role === 'admin'));
+    };
+    checkAdmin();
   }, [user]);
 
   const handleLogout = async () => {
@@ -135,7 +158,15 @@ const AuthProfileMenu: React.FC = () => {
           >
             Account
           </button>
-          <button 
+          {isAdmin && (
+            <button
+              className="w-full text-left px-4 py-2 text-sm hover:bg-saffron/10"
+              onClick={() => { setDropdown(false); navigate('/admin'); }}
+            >
+              Admin console
+            </button>
+          )}
+         <button 
             className="w-full text-left px-4 py-2 text-sm hover:bg-saffron/10" 
             onClick={handleLogout}
           >

@@ -17,9 +17,9 @@ const Header = () => {
 
   return (
     <header className="bg-white shadow-sm sticky top-0 z-40">
-      <div className="container mx-auto py-3 px-4 flex flex-col sm:flex-row items-center justify-between gap-y-2">
-        <Link to="/" className="font-playfair font-black text-2xl text-green order-1">
-          Nidhis
+      <div className="container mx-auto py-4 px-4 flex flex-col sm:flex-row items-center justify-between gap-y-2">
+        <Link to="/" className="order-1 flex items-center">
+          <img src="/images/Logos/NidhiS.svg" alt="Nidhis" className="h-[130px] w-auto" />
         </Link>
 
         <div className="flex-1 flex justify-center w-full sm:w-auto order-2 sm:order-1">

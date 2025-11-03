@@ -4,6 +4,22 @@ import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import ImageWithFallback from "@/components/ImageWithFallback";
+import { useQuery } from "@tanstack/react-query";
+import { formatInrFromCents } from "@/lib/utils";
+
+type AccountOrderItem = { name_snapshot: string; quantity: number; price_cents_snapshot: number }
+type AccountOrder = {
+  id: string
+  status: string
+  created_at: string
+  total_cents: number
+  shipping_cents: number | null
+  discount_cents: number | null
+  subtotal_cents: number | null
+  coupon_snapshot: { code?: string } | null
+  shipping_tracking_url: string | null
+  order_items: AccountOrderItem[]
+}
 
 const AccountPage: React.FC = () => {
   const [userId, setUserId] = useState<string | null>(null);
@@ -12,6 +28,22 @@ const AccountPage: React.FC = () => {
   const [avatarUrl, setAvatarUrl] = useState("");
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+
+  const { data: orders = [], isLoading: ordersLoading } = useQuery({
+    queryKey: ['account-orders', userId],
+    enabled: !!userId,
+    queryFn: async (): Promise<AccountOrder[]> => {
+      if (!userId) return []
+      const { data, error } = await supabase
+        .from('orders')
+        .select('id,status,total_cents,subtotal_cents,discount_cents,shipping_cents,coupon_snapshot,created_at,shipping_tracking_url,order_items(name_snapshot,quantity,price_cents_snapshot)')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+
+      if (error) throw error
+      return (data ?? []) as AccountOrder[]
+    }
+  })
 
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data }) => {
@@ -83,6 +115,62 @@ const AccountPage: React.FC = () => {
           <div>
             <Button onClick={saveProfile} disabled={!userId || saving}>{saving ? "Saving..." : "Save changes"}</Button>
           </div>
+        </section>
+        <section className="p-5 border rounded-md bg-white shadow space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-semibold">Order History</h2>
+            <span className="text-sm text-neutral-500">{orders.length} order{orders.length === 1 ? '' : 's'}</span>
+          </div>
+          {ordersLoading ? (
+            <div className="text-neutral-500 text-sm">Loading your orders…</div>
+          ) : orders.length === 0 ? (
+            <div className="text-neutral-500 text-sm">No orders yet. Browse the store and place your first order!</div>
+          ) : (
+            <ul className="space-y-4">
+              {orders.map((order) => {
+                const placedAt = new Date(order.created_at).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })
+                const subtotal = order.subtotal_cents ?? order.total_cents
+                const discount = order.discount_cents ?? 0
+                const shipping = order.shipping_cents ?? 0
+                return (
+                  <li key={order.id} className="border rounded-lg p-4 bg-neutral-50">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div>
+                        <div className="font-semibold text-neutral-800">Order {order.id}</div>
+                        <div className="text-xs text-neutral-500">Placed {placedAt}</div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-sm text-neutral-500">Status</div>
+                        <div className="text-sm font-semibold text-neutral-700">{order.status}</div>
+                      </div>
+                    </div>
+                    <div className="mt-3 text-sm text-neutral-600 space-y-1">
+                      <div>Subtotal: {formatInrFromCents(subtotal)}</div>
+                      {discount > 0 && <div>Discount: -{formatInrFromCents(discount)} {order.coupon_snapshot?.code ? `(${order.coupon_snapshot.code})` : ''}</div>}
+                      <div>Shipping: {formatInrFromCents(shipping)}</div>
+                      <div className="font-semibold text-neutral-800">Total paid: {formatInrFromCents(order.total_cents)}</div>
+                    </div>
+                    <div className="mt-3">
+                      <h3 className="text-xs font-semibold text-neutral-500 uppercase mb-1">Items</h3>
+                      <ul className="space-y-1 text-sm text-neutral-700">
+                        {order.order_items?.map((item, idx) => (
+                          <li key={`${item.name_snapshot}-${idx}`} className="flex justify-between">
+                            <span>{item.name_snapshot} × {item.quantity}</span>
+                            <span>{formatInrFromCents((item.price_cents_snapshot ?? 0) * (item.quantity ?? 0))}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                    {order.shipping_tracking_url && (
+                      <div className="mt-3 text-sm">
+                        Track shipment: <a href={order.shipping_tracking_url} className="text-green underline" target="_blank" rel="noreferrer">{order.shipping_tracking_url}</a>
+                      </div>
+                    )}
+                  </li>
+                )
+              })}
+            </ul>
+          )}
         </section>
         {/* Addresses */}
         <section className="p-5 border rounded-md bg-white shadow">

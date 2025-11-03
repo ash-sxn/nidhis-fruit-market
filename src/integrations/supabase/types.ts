@@ -16,7 +16,13 @@ export type Database = {
           slug: string | null
           category: string
           price_cents: number
+          mrp_cents: number | null
+          inventory: number
+          description: string | null
+          updated_at: string | null
           image_url: string | null
+          image_path: string | null
+          search_document: unknown | null
           is_active: boolean
           created_at: string
         }
@@ -26,7 +32,13 @@ export type Database = {
           slug?: string | null
           category: string
           price_cents: number
+          mrp_cents?: number | null
+          inventory?: number
+          description?: string | null
+          updated_at?: string | null
           image_url?: string | null
+          image_path?: string | null
+          search_document?: unknown | null
           is_active?: boolean
           created_at?: string
         }
@@ -36,7 +48,13 @@ export type Database = {
           slug?: string | null
           category?: string
           price_cents?: number
+          mrp_cents?: number | null
+          inventory?: number
+          description?: string | null
+          updated_at?: string | null
           image_url?: string | null
+          image_path?: string | null
+          search_document?: unknown | null
           is_active?: boolean
           created_at?: string
         }
@@ -63,6 +81,90 @@ export type Database = {
           product_id?: string
           quantity?: number
           user_id?: string
+        }
+        Relationships: []
+      }
+      orders: {
+        Row: {
+          id: string
+          user_id: string
+          status: string
+          total_cents: number
+          currency: string
+          address_snapshot: Json
+          payment_ref: string | null
+          created_at: string
+          updated_at: string
+          shipping_provider: string | null
+          shipping_awb: string | null
+          shipping_status: string | null
+          shipping_tracking_url: string | null
+          shipping_label_url: string | null
+          shipping_meta: Json | null
+          shipping_synced_at: string | null
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          status?: string
+          total_cents: number
+          currency?: string
+          address_snapshot: Json
+          payment_ref?: string | null
+          created_at?: string
+          updated_at?: string
+          shipping_provider?: string | null
+          shipping_awb?: string | null
+          shipping_status?: string | null
+          shipping_tracking_url?: string | null
+          shipping_label_url?: string | null
+          shipping_meta?: Json | null
+          shipping_synced_at?: string | null
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          status?: string
+          total_cents?: number
+          currency?: string
+          address_snapshot?: Json
+          payment_ref?: string | null
+          created_at?: string
+          updated_at?: string
+          shipping_provider?: string | null
+          shipping_awb?: string | null
+          shipping_status?: string | null
+          shipping_tracking_url?: string | null
+          shipping_label_url?: string | null
+          shipping_meta?: Json | null
+          shipping_synced_at?: string | null
+        }
+        Relationships: []
+      }
+      order_items: {
+        Row: {
+          id: string
+          order_id: string
+          product_id: string
+          name_snapshot: string
+          price_cents_snapshot: number
+          quantity: number
+        }
+        Insert: {
+          id?: string
+          order_id: string
+          product_id: string
+          name_snapshot: string
+          price_cents_snapshot: number
+          quantity?: number
+        }
+        Update: {
+          id?: string
+          order_id?: string
+          product_id?: string
+          name_snapshot?: string
+          price_cents_snapshot?: number
+          quantity?: number
         }
         Relationships: []
       }
@@ -131,7 +233,20 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      create_order_with_items: {
+        Args: {
+          p_currency: string | null
+          p_address: Json | null
+          p_items: Json
+        }
+        Returns: Json
+      }
+      restock_order_inventory: {
+        Args: {
+          p_order_id: string
+        }
+        Returns: null
+      }
     }
     Enums: {
       app_role: "admin" | "user"
