@@ -21,6 +21,4 @@ jobs:
       - name: Install Playwright browsers
         run: npx playwright install --with-deps
       - name: Run Playwright tests
-        env:
-          E2E_BASE_URL: http://127.0.0.1:4173
         run: npx playwright test
