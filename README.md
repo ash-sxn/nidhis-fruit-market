@@ -1,4 +1,4 @@
-# Welcome to your Lovable project
+# Welcome to your project
 
 ## Project info
 
@@ -64,6 +64,13 @@ This project is built with:
 
 Simply open [Lovable](https://lovable.dev/projects/23bf365f-078f-410f-a3a6-f10604944855) and click on Share -> Publish.
 
+## Testing & QA
+
+- `npm run test:e2e` – launches the Playwright smoke suite. By default the tests start `npm run preview` on port 4173; set `E2E_BASE_URL` if you want to target a deployed URL (e.g., `E2E_BASE_URL=https://your-ngrok-url npx playwright test`).
+- GitHub Actions (`.github/workflows/ci.yml`) runs `npm ci`, `npm run build`, installs Playwright browsers, and executes the same suite on every push/PR.
+
+These tests cover homepage rendering, category listing, and individual product detail pages so that we catch routing/Supabase regressions before shipping.
+
 ## Razorpay configuration
 
 To accept payments in production, configure the following environment variables for both the frontend deployment (Vercel) and the Supabase Edge functions:
@@ -71,12 +78,18 @@ To accept payments in production, configure the following environment variables 
 - `RAZORPAY_KEY_ID` – your public key, exposed to the browser when creating the checkout session.
 - `RAZORPAY_KEY_SECRET` – your private key, used server-side when creating Razorpay orders.
 - `RAZORPAY_WEBHOOK_SECRET` – shared secret for verifying Razorpay webhooks.
+- `VITE_POSTHOG_KEY` / `VITE_POSTHOG_HOST` – PostHog project write key + host for client analytics capture.
+- `POSTHOG_API_KEY` – PostHog server key for the API routes (use the same key as `VITE_POSTHOG_KEY`).
+- `RESEND_API_KEY`, `ORDER_FROM_EMAIL` – credentials for sending order-confirmation emails via Resend. Optional; if omitted emails are skipped.
+- `SUPABASE_SERVICE_ROLE_KEY` must be present before running any migration scripts (e.g., the image migration below).
+- `SHIPROCKET_EMAIL`, `SHIPROCKET_PASSWORD`, `SHIPROCKET_PICKUP_LOCATION` – credentials for Shiprocket API access. Optional during development; when present the backend will auto-book shipments after successful payments.
+- `SHIPROCKET_DEFAULT_*` – fallback parcel dimensions/weight fed to Shiprocket if products don’t specify their own values.
 
 Remember to update the webhook URL inside the Razorpay dashboard to point to `/api/razorpay/webhook` of your deployed site so that order statuses are synchronised once a payment is captured.
 
 ### Managing secrets in each environment
 
-- **Local development** – create a `.env.local` file (ignored by git) with the three variables so `npm run dev` and the API routes can read them. Example:
+- **Local development** – create a `.env.local` file (ignored by git) with the three variables so `npm run dev` and the API routes can read them. The API handlers now auto-load `.env.local`, `.env.development.local`, and `.env`, so once the file exists you no longer need to `export` variables in each shell session (works even when tunnelling via ngrok). Example:
   ```ini
   RAZORPAY_KEY_ID=rzp_test_...
   RAZORPAY_KEY_SECRET=...
@@ -100,6 +113,17 @@ Never commit `.env` files or paste keys directly into source. If a secret change
 - `src/lib/razorpay.ts` lazily injects Razorpay’s hosted checkout script the first time a shopper starts the payment flow. This keeps the initial bundle light while still letting the checkout page call `ensureRazorpay()` and construct the modal on demand.
 - `src/vite-env.d.ts` declares the minimal TypeScript interfaces for the global `window.Razorpay` constructor so our React components remain type-safe even though the SDK is loaded from Razorpay’s CDN instead of npm.
 - `api/razorpay/create-order.ts` is the serverless function that signs Razorpay REST requests with `RAZORPAY_KEY_ID`/`RAZORPAY_KEY_SECRET` and returns an order ID for the browser checkout widget. Without these credentials the modal cannot be opened.
+- `api/razorpay/verify-payment.ts` validates Razorpay signatures server-side and only marks an order as paid after the signature check passes.
+- `api/orders/cancel.ts` lets the checkout flow safely cancel a pending order when the modal is dismissed.
+
+### Admin panel
+
+- Visit `/admin` (dark theme) to manage catalogue data once your user has the `admin` role in `public.user_roles`.
+- Product changes are logged in `product_audit_logs`. The migration also provisions a public storage bucket (`product-images`) for catalogue imagery.
+- If you created the project before the storage migration, run `npm run migrate:product-images` (with `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY` exported) to upload the legacy `/public/images` assets into Supabase Storage and rewrite the corresponding product URLs.
+- Admin accounts must enroll in TOTP-based MFA. On first login the dashboard redirects to `/admin/mfa` where a QR code is generated and verified before any privileged routes are available. Existing admins can invite or revoke team members from `/admin/team`.
+- If Shiprocket credentials are present, the backend manifests prepaid orders automatically and the admin orders screen exposes buttons to generate shipments or refresh tracking data.
+- Product variants (weight/pack sizes) are managed under each product. You can add multiple variants, set one as default, control inventory per weight, and toggle visibility without duplicating the product record.
 
 ### Verifying your webhook form in the Razorpay dashboard
 

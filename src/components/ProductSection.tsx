@@ -7,6 +7,7 @@ import { Heart, ShoppingCart } from "lucide-react"
 import { useAddToCart } from "@/hooks/useAddToCart"
 import { useAddToWishlist } from "@/hooks/useAddToWishlist"
 import { Link } from "react-router-dom"
+import { toast } from "@/components/ui/use-toast"
 
 export type ProductSectionItem = {
   id?: string
@@ -16,6 +17,9 @@ export type ProductSectionItem = {
   originalPriceCents?: number | null
   slug?: string
   description?: string
+  inventory?: number | null
+  variantId?: string | null
+  variantLabel?: string | null
 }
 
 interface ProductSectionProps {
@@ -37,7 +41,11 @@ const ProductSection: React.FC<ProductSectionProps> = ({
 
   const handleAddToCart = (product: ProductSectionItem) => {
     const product_id = resolveProductId(product)
-    addToCart.mutate({ product_id, quantity: 1 })
+    if (!product.variantId) {
+      toast({ title: 'Select weight on product page', description: 'Open the product details to choose a pack size.', variant: 'destructive' })
+      return
+    }
+    addToCart.mutate({ product_id, variant_id: product.variantId, quantity: 1 })
   }
 
   const handleAddToWishlist = (product: ProductSectionItem) => {
@@ -64,11 +72,12 @@ const ProductSection: React.FC<ProductSectionProps> = ({
             const primaryPrice = formatInrFromCents(product.priceCents)
             const hasSale = product.originalPriceCents != null && product.originalPriceCents > product.priceCents
             const salePrice = hasSale ? formatInrFromCents(product.originalPriceCents!) : null
+            const isOutOfStock = product.inventory !== undefined && product.inventory !== null && product.inventory <= 0
 
             const productUrl = product.slug ? `/product/${product.slug}` : undefined
 
             const imageNode = (
-              <div className="overflow-hidden rounded-lg mb-3 w-40 h-40 bg-neutral-200 flex items-center justify-center">
+              <div className="overflow-hidden rounded-lg mb-3 w-40 h-40 bg-neutral-200 flex items-center justify-center mx-auto">
                 <ImageWithFallback
                   src={product.image ?? '/placeholder.svg'}
                   alt={product.name}
@@ -85,6 +94,7 @@ const ProductSection: React.FC<ProductSectionProps> = ({
             return (
               <div
                 key={resolveProductId(product)}
+                data-testid="product-card"
                 className="rounded-xl bg-neutral-50 shadow-card hover:shadow-lg transition-shadow hover:-translate-y-1 p-4 flex flex-col items-center border border-gold/10 group"
               >
                 {productUrl ? (
@@ -112,22 +122,25 @@ const ProductSection: React.FC<ProductSectionProps> = ({
                 </div>
                 <div className="flex gap-3 items-center w-full mt-auto">
                   <Button
-                    className="bg-green text-white hover:bg-green/80 px-4 flex-1"
+                    className="bg-green text-white hover:bg-green/80 px-4 flex-1 disabled:bg-neutral-400"
                     onClick={() => handleAddToCart(product)}
-                    disabled={addToCart.isPending}
+                    disabled={addToCart.isPending || isOutOfStock || !product.variantId}
                   >
-                    <ShoppingCart className="mr-2 w-4 h-4" /> Add to cart
+                    {isOutOfStock ? 'Out of stock' : <><ShoppingCart className="mr-2 w-4 h-4" /> Add to cart</>}
                   </Button>
                   <button
                     className="rounded-full p-2 border border-green bg-white hover:bg-green/10 text-green transition-colors flex items-center"
                     title="Add to wishlist"
                     onClick={() => handleAddToWishlist(product)}
-                    disabled={addToWishlist.isPending}
+                    disabled={addToWishlist.isPending || isOutOfStock}
                     type="button"
                   >
                     <Heart className="w-5 h-5" />
                   </button>
                 </div>
+                {isOutOfStock && (
+                  <p className="mt-2 text-xs text-rose-500">Restocking soon</p>
+                )}
               </div>
             )
           })}
@@ -138,4 +151,3 @@ const ProductSection: React.FC<ProductSectionProps> = ({
 }
 
 export default ProductSection
-

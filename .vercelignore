@@ -1,0 +1,11 @@
+node_modules
+.playwright-browsers
+playwright-report
+test-results
+
+# Build artifacts already generated locally
+dist
+
+# Misc
+.DS_Store
+.vscode

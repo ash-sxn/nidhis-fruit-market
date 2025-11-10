@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import Header from '@/components/Header'
 import Footer from '@/components/Footer'
@@ -12,6 +12,7 @@ import { useAddToWishlist } from '@/hooks/useAddToWishlist'
 import { Heart, ShoppingCart } from 'lucide-react'
 import ProductSection from '@/components/ProductSection'
 import { useProducts } from '@/hooks/useProducts'
+import { toast } from '@/components/ui/use-toast'
 
 const ProductDetailPage: React.FC = () => {
   const { slug } = useParams<{ slug: string }>()
@@ -19,6 +20,19 @@ const ProductDetailPage: React.FC = () => {
   const addToCart = useAddToCart()
   const addToWishlist = useAddToWishlist()
   const { data: categoryProducts = [] } = useProducts(product?.category, { enabled: Boolean(product?.category) })
+  const [selectedVariantId, setSelectedVariantId] = useState<string | null>(null)
+
+  const variants = useMemo(() => (product?.variants ?? []).filter((variant) => variant.is_active), [product])
+
+  const activeVariant = useMemo(() => {
+    if (!variants.length) return null
+    if (selectedVariantId) {
+      const match = variants.find((variant) => variant.id === selectedVariantId)
+      if (match) return match
+    }
+    const defaultMatch = variants.find((variant) => variant.id === product?.default_variant_id || variant.is_default)
+    return defaultMatch ?? variants[0]
+  }, [variants, selectedVariantId, product?.default_variant_id])
 
   const description = useMemo(() => {
     if (!product) return 'Discover premium dry fruits sourced by Nidhis.'
@@ -28,8 +42,11 @@ const ProductDetailPage: React.FC = () => {
 
   const productJsonLd = useMemo(() => {
     if (!product) return null
-    const price = (product.price_cents / 100).toFixed(2)
+    const price = ((activeVariant?.price_cents ?? product.price_cents) / 100).toFixed(2)
     const images = product.image_url ? [product.image_url] : undefined
+    const availabilityUrl = (activeVariant?.inventory ?? product.inventory ?? 0) > 0
+      ? 'https://schema.org/InStock'
+      : 'https://schema.org/OutOfStock'
     return {
       '@context': 'https://schema.org',
       '@type': 'Product',
@@ -41,10 +58,10 @@ const ProductDetailPage: React.FC = () => {
         '@type': 'Offer',
         priceCurrency: 'INR',
         price,
-        availability: 'https://schema.org/InStock'
+        availability: availabilityUrl
       }
     }
-  }, [product])
+  }, [product, activeVariant, description])
 
   useEffect(() => {
     if (product?.name) {
@@ -58,9 +75,25 @@ const ProductDetailPage: React.FC = () => {
     }
   }, [product?.name, description])
 
+  useEffect(() => {
+    if (!product) {
+      setSelectedVariantId(null)
+      return
+    }
+    const defaultId =
+      product.default_variant_id ??
+      product.variants?.find((variant) => variant.is_default)?.id ??
+      product.variants?.[0]?.id ??
+      null
+    setSelectedVariantId(defaultId ?? null)
+  }, [product?.id])
+
   const handleAddToCart = () => {
-    if (!product?.id) return
-    addToCart.mutate({ product_id: product.id, quantity: 1 })
+    if (!product?.id || !activeVariant?.id) {
+      toast({ title: 'Select a weight option', variant: 'destructive' })
+      return
+    }
+    addToCart.mutate({ product_id: product.id, variant_id: activeVariant.id, quantity: 1 })
   }
 
   const handleAddToWishlist = () => {
@@ -120,11 +153,16 @@ const ProductDetailPage: React.FC = () => {
                     </h1>
                     <div className="flex items-baseline gap-3 mt-4">
                       <p className="text-2xl font-semibold text-saffron">
-                        {formatInrFromCents(product.price_cents)}
+                        {formatInrFromCents(activeVariant?.price_cents ?? product.price_cents)}
                       </p>
-                      {product.mrp_cents && product.mrp_cents > product.price_cents && (
-                        <span className="text-neutral-400 line-through">{formatInrFromCents(product.mrp_cents)}</span>
-                      )}
+                      {(() => {
+                        const mrp = activeVariant?.mrp_cents ?? product.mrp_cents
+                        const price = activeVariant?.price_cents ?? product.price_cents
+                        if (mrp && mrp > price) {
+                          return <span className="text-neutral-400 line-through">{formatInrFromCents(mrp)}</span>
+                        }
+                        return null
+                      })()}
                     </div>
                   </div>
                   <div className="space-y-3 text-neutral-700">
@@ -133,11 +171,43 @@ const ProductDetailPage: React.FC = () => {
                       Need bulk or gifting options? Reach out to our team for customised hampers and corporate gifting support.
                     </p>
                   </div>
+                  {variants.length > 0 && (
+                    <div className="space-y-2">
+                      <h3 className="text-sm font-semibold text-neutral-700">Choose weight</h3>
+                      <div className="flex flex-wrap gap-2">
+                        {variants.map((variant) => {
+                          const isSelected = activeVariant?.id === variant.id
+                          const disabled = (variant.inventory ?? 0) <= 0
+                          return (
+                            <button
+                              key={variant.id}
+                              type="button"
+                              onClick={() => setSelectedVariantId(variant.id)}
+                              disabled={disabled}
+                              className={`rounded-full border px-4 py-2 text-sm transition-colors ${
+                                isSelected
+                                  ? 'border-green bg-green/10 text-green font-semibold'
+                                  : 'border-neutral-200 hover:border-green/50 text-neutral-700'
+                              } ${disabled ? 'opacity-60 cursor-not-allowed' : ''}`}
+                            >
+                              <span>{variant.label}</span>
+                              <span className="ml-2 text-neutral-500">
+                                {formatInrFromCents(variant.price_cents)}
+                              </span>
+                            </button>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  )}
                   <div className="flex flex-wrap gap-4">
+                    {(activeVariant?.inventory ?? 0) <= 0 && (
+                      <div className="w-full text-sm text-rose-500">Currently out of stock.</div>
+                    )}
                     <button
                       className="inline-flex items-center justify-center rounded-full bg-green text-white px-6 py-3 font-semibold shadow hover:bg-green/85 transition-colors"
                       onClick={handleAddToCart}
-                      disabled={addToCart.isPending}
+                      disabled={addToCart.isPending || (activeVariant?.inventory ?? 0) <= 0}
                       type="button"
                     >
                       <ShoppingCart className="w-5 h-5 mr-2" /> Add to cart
@@ -145,18 +215,18 @@ const ProductDetailPage: React.FC = () => {
                     <button
                       className="inline-flex items-center justify-center rounded-full border border-green text-green px-6 py-3 font-semibold hover:bg-green/10 transition-colors"
                       onClick={handleAddToWishlist}
-                      disabled={addToWishlist.isPending}
+                      disabled={addToWishlist.isPending || (activeVariant?.inventory ?? 0) <= 0}
                       type="button"
                     >
                       <Heart className="w-5 h-5 mr-2" /> Add to wishlist
                     </button>
                   </div>
                   <div className="text-sm text-neutral-500 space-y-1">
-                    <p>• 100% natural ingredients</p>
-                    <p>• Secure packaging to maintain crunch and aroma</p>
-                    <p>• Fast shipping across India</p>
-                    {typeof product.inventory === 'number' && product.inventory <= 10 && (
-                      <p className="text-rose-500 font-medium">Only {product.inventory} left in stock</p>
+                    <p> 100% natural ingredients</p>
+                    <p> Secure packaging to maintain crunch and aroma</p>
+                    <p> Fast shipping across India</p>
+                    {typeof activeVariant?.inventory === 'number' && (activeVariant?.inventory ?? 0) <= 10 && (
+                      <p className="text-rose-500 font-medium">Only {activeVariant?.inventory ?? 0} left in stock</p>
                     )}
                   </div>
                 </div>

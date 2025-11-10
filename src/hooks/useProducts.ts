@@ -2,17 +2,18 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
 export type ProductRow = {
-  id: string;
-  name: string;
-  slug: string | null;
-  category: string;
-  price_cents: number;
-  mrp_cents: number | null;
-  description: string | null;
-  inventory: number;
-  image_url: string | null;
-  updated_at: string;
-};
+  id: string
+  name: string
+  slug: string | null
+  category: string
+  price_cents: number
+  mrp_cents: number | null
+  description: string | null
+  inventory: number
+  image_url: string | null
+  updated_at: string
+  default_variant_id: string | null
+}
 
 type UseProductsOptions = {
   enabled?: boolean;
@@ -29,7 +30,7 @@ export const useProducts = (category?: string, options?: UseProductsOptions) => 
 
       let query = supabase
         .from("products")
-        .select("id,name,slug,category,price_cents,mrp_cents,description,inventory,image_url,updated_at")
+        .select("id,name,slug,category,price_cents,mrp_cents,description,inventory,image_url,updated_at,default_variant_id")
         .eq("is_active", true);
 
       if (category) {

@@ -1,3 +1,4 @@
+import '../_lib/env.ts'
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import crypto from 'crypto'
 import { createClient } from '@supabase/supabase-js'
@@ -21,11 +22,27 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (!secret) return res.status(500).end('Missing webhook secret')
 
   const raw = await buffer(req)
-  const signature = req.headers['x-razorpay-signature'] as string
-  const expected = crypto.createHmac('sha256', secret).update(raw).digest('hex')
-  if (signature !== expected) return res.status(400).end('Invalid signature')
+  const signatureHeader = req.headers['x-razorpay-signature']
+  if (typeof signatureHeader !== 'string') return res.status(400).end('Missing signature')
 
-  const evt = JSON.parse(raw.toString())
+  let provided: Buffer
+  try {
+    provided = Buffer.from(signatureHeader, 'hex')
+  } catch (err) {
+    return res.status(400).end('Invalid signature encoding')
+  }
+
+  const expected = crypto.createHmac('sha256', secret).update(raw).digest()
+  if (provided.length !== expected.length || !crypto.timingSafeEqual(provided, expected)) {
+    return res.status(400).end('Invalid signature')
+  }
+
+  let evt: any
+  try {
+    evt = JSON.parse(raw.toString('utf8'))
+  } catch (err) {
+    return res.status(400).end('Invalid payload')
+  }
   if (evt?.event === 'payment.captured') {
     const receipt = evt?.payload?.payment?.entity?.notes?.receipt || evt?.payload?.payment?.entity?.order_id
     const supabase = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
@@ -35,4 +52,3 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
   return res.status(200).end('OK')
 }
-
