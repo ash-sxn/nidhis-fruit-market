@@ -69,6 +69,34 @@ const productSchema = z.object({
   image_url: imageUrlSchema
 })
 
+const sanitizeNumber = (value: unknown, fallback = 0) => {
+  if (value === null || value === undefined) return fallback
+  const parsed = typeof value === 'number' ? value : Number(value)
+  return Number.isFinite(parsed) ? parsed : fallback
+}
+
+const sanitizeCents = (value: unknown) => {
+  const parsed = sanitizeNumber(value, 0)
+  return Math.max(0, Math.round(parsed * 100))
+}
+
+const sanitizeInventory = (value: unknown) => {
+  const parsed = sanitizeNumber(value, 0)
+  return Math.max(0, Math.round(parsed))
+}
+
+const parseInputNumber = (value: string) => {
+  if (!value) return 0
+  const parsed = Number(value)
+  return Number.isFinite(parsed) ? parsed : 0
+}
+
+const parseNullableNumber = (value: string) => {
+  if (!value) return null
+  const parsed = Number(value)
+  return Number.isFinite(parsed) ? parsed : null
+}
+
 function toSlug(value: string) {
   return value
     .toLowerCase()
@@ -125,9 +153,9 @@ function mapRowToForm(row: AdminProductRow): FormValues {
 
 function mapFormToUpsert(values: FormValues) {
   const defaultVariant = values.variants.find((variant) => variant.is_default) ?? values.variants[0]
-  const priceCents = defaultVariant ? Math.round(defaultVariant.price * 100) : 0
-  const mrpCents = defaultVariant ? Math.round(defaultVariant.mrp * 100) : priceCents
-  const inventory = defaultVariant ? defaultVariant.inventory : 0
+  const priceCents = sanitizeCents(defaultVariant?.price)
+  const mrpCents = sanitizeCents(defaultVariant?.mrp ?? defaultVariant?.price)
+  const inventory = sanitizeInventory(defaultVariant?.inventory)
 
   return {
     id: values.id,
@@ -223,18 +251,18 @@ export default function AdminProductsPage() {
       const defaultVariantId = defaultVariant?.id
 
       const normalizedVariants = values.variants.map((variant, index) => ({
-        id: variant.id,
-        product_id: values.id,
-        label: variant.label,
-        grams: variant.grams,
-        price_cents: Math.round(Math.max(0, variant.price) * 100),
-        mrp_cents: Math.round(Math.max(variant.mrp, variant.price) * 100),
-        inventory: Math.max(0, variant.inventory),
-        sku: variant.sku ?? null,
-        is_active: variant.is_active,
-        is_default: defaultVariantId ? variant.id === defaultVariantId : index === 0,
-        sort_order: index
-      }))
+          id: variant.id,
+          product_id: values.id,
+          label: variant.label,
+          grams: variant.grams,
+        price_cents: sanitizeCents(variant.price),
+        mrp_cents: sanitizeCents(variant.mrp ?? variant.price),
+        inventory: sanitizeInventory(variant.inventory),
+          sku: variant.sku ?? null,
+          is_active: variant.is_active,
+          is_default: defaultVariantId ? variant.id === defaultVariantId : index === 0,
+          sort_order: index
+        }))
 
       if (normalizedVariants.length === 0) {
         throw new Error('Add at least one weight option before saving')
@@ -286,7 +314,10 @@ export default function AdminProductsPage() {
       queryClient.invalidateQueries({ queryKey: ['admin-products'] })
     },
     onError: (err: any) => {
-      toast({ title: 'Delete failed', description: err?.message ?? 'Please try again', variant: 'destructive' })
+      const description = err?.code === '23503'
+        ? 'This product is linked to existing orders and cannot be deleted.'
+        : err?.message ?? 'Please try again'
+      toast({ title: 'Delete failed', description, variant: 'destructive' })
     }
   })
 
@@ -618,7 +649,7 @@ export default function AdminProductsPage() {
                             className="bg-slate-800 border-slate-700 text-slate-100"
                             onChange={(e) => setDraft((prev) => prev ? {
                               ...prev,
-                              variants: prev.variants.map((v) => v.id === variant.id ? { ...v, grams: e.target.value ? Number(e.target.value) : null } : v)
+                              variants: prev.variants.map((v) => v.id === variant.id ? { ...v, grams: parseNullableNumber(e.target.value) } : v)
                             } : prev)}
                           />
                         </div>
@@ -632,7 +663,7 @@ export default function AdminProductsPage() {
                             className="bg-slate-800 border-slate-700 text-slate-100"
                             onChange={(e) => setDraft((prev) => prev ? {
                               ...prev,
-                              variants: prev.variants.map((v) => v.id === variant.id ? { ...v, price: Number(e.target.value) } : v)
+                              variants: prev.variants.map((v) => v.id === variant.id ? { ...v, price: parseInputNumber(e.target.value) } : v)
                             } : prev)}
                           />
                         </div>
@@ -646,7 +677,7 @@ export default function AdminProductsPage() {
                             className="bg-slate-800 border-slate-700 text-slate-100"
                             onChange={(e) => setDraft((prev) => prev ? {
                               ...prev,
-                              variants: prev.variants.map((v) => v.id === variant.id ? { ...v, mrp: Number(e.target.value) } : v)
+                              variants: prev.variants.map((v) => v.id === variant.id ? { ...v, mrp: parseInputNumber(e.target.value) } : v)
                             } : prev)}
                           />
                         </div>
@@ -659,7 +690,7 @@ export default function AdminProductsPage() {
                             className="bg-slate-800 border-slate-700 text-slate-100"
                             onChange={(e) => setDraft((prev) => prev ? {
                               ...prev,
-                              variants: prev.variants.map((v) => v.id === variant.id ? { ...v, inventory: Number(e.target.value) } : v)
+                              variants: prev.variants.map((v) => v.id === variant.id ? { ...v, inventory: parseInputNumber(e.target.value) } : v)
                             } : prev)}
                           />
                         </div>

@@ -35,6 +35,7 @@ This repo uses a feature-branch and small, incremental commits workflow. Follow 
 - Avoid committing large binaries; use Storage/CDN for media.
 - Keep PRs under ~300 lines where practical for reviewability.
 - If a task can be performed via terminal commands or MCP tools, do it yourself rather than delegating. Only request user action when something is impossible due to sandbox limitations (e.g., no network, missing credentials, or GUI-only steps).
+- Git/GitHub operations (fetch, pull, rebase, push, PR updates, etc.) should also be performed directly from the terminal whenever the sandbox allows it. Only fall back to user action when network policies or missing credentials block the command, and clearly call out the limitation.
 
 > Remember: commit early, commit often, in small, reviewable patches.
 
