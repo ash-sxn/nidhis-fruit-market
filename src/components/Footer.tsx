@@ -10,7 +10,7 @@ const Footer = () => (
           <span role="img" aria-label="dry fruit">🥭</span> Nidhis Dry Fruits
         </div>
         <p className="text-neutral-700 max-w-md leading-relaxed mb-2">
-          Bringing you the best of Indian dry fruits, spices, and health gifts. Tradition, purity, and trust – since 1987.
+          Bringing you the best of Indian dry fruits, spices, and health gifts. Tradition, purity, and trust – since 2020.
         </p>
         <div className="flex gap-3 mt-3">
           <a href="https://instagram.com/" target="_blank" rel="noopener noreferrer" aria-label="Instagram" className="text-saffron hover:text-green text-xl"><Instagram /></a>
@@ -32,9 +32,9 @@ const Footer = () => (
       <div>
         <h4 className="font-bold text-saffron mb-3">Contact Us</h4>
         <ul className="space-y-2 text-neutral-700 text-sm">
-          <li className="flex items-center gap-2"><Phone className="w-4 h-4" /> +91-12345-67890</li>
+          <li className="flex items-center gap-2"><Phone className="w-4 h-4" /> +91 99580 75202</li>
           <li><Mail className="inline w-4 h-4 mr-1" /> support@nidhisdryfruits.com</li>
-          <li>123 Spice Lane, Mumbai, India</li>
+          <li>Panchsheel Villa, Panchsheel Greens 2, Noida Extension</li>
         </ul>
       </div>
     </div>

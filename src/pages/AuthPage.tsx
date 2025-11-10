@@ -27,6 +27,10 @@ const AuthPage: React.FC = () => {
   const [showForgotPw, setShowForgotPw] = useState(false);
   const [forgotPwEmail, setForgotPwEmail] = useState("");
   const [forgotPwLoading, setForgotPwLoading] = useState(false);
+  const [phoneNumber, setPhoneNumber] = useState("");
+  const [phoneOtp, setPhoneOtp] = useState("");
+  const [otpSent, setOtpSent] = useState(false);
+  const [phoneLoading, setPhoneLoading] = useState(false);
 
   // Auth state listener
   useEffect(() => {
@@ -148,6 +152,54 @@ const AuthPage: React.FC = () => {
       toast({ title: "Password reset email sent. Please check your inbox (and spam)." });
       setShowForgotPw(false);
     }
+  };
+
+  const normalizePhone = (value: string) => value.replace(/[^0-9+]/g, "");
+  const getE164Phone = () => {
+    const trimmed = phoneNumber.trim();
+    if (!trimmed) return null;
+    if (trimmed.startsWith("+")) return trimmed;
+    const digits = trimmed.replace(/[^0-9]/g, "");
+    if (digits.length === 10) return `+91${digits}`;
+    if (digits.length === 12 && digits.startsWith("91")) return `+${digits}`;
+    return null;
+  };
+
+  const handleSendPhoneOtp = async () => {
+    const formatted = getE164Phone();
+    if (!formatted) {
+      toast({ title: "Enter a valid phone number", variant: "destructive" });
+      return;
+    }
+    setPhoneLoading(true);
+    const { error } = await supabase.auth.signInWithOtp({ phone: formatted, options: { channel: 'sms' } });
+    setPhoneLoading(false);
+    if (error) {
+      toast({ title: error.message, variant: "destructive" });
+      return;
+    }
+    setOtpSent(true);
+    toast({ title: "OTP sent", description: `We texted a code to ${formatted}` });
+  };
+
+  const handleVerifyPhoneOtp = async () => {
+    const formatted = getE164Phone();
+    if (!formatted) {
+      toast({ title: "Enter a valid phone number", variant: "destructive" });
+      return;
+    }
+    if (phoneOtp.trim().length < 4) {
+      toast({ title: "Enter the OTP we sent", variant: "destructive" });
+      return;
+    }
+    setPhoneLoading(true);
+    const { error } = await supabase.auth.verifyOtp({ phone: formatted, token: phoneOtp.trim(), type: 'sms' });
+    setPhoneLoading(false);
+    if (error) {
+      toast({ title: error.message, variant: "destructive" });
+      return;
+    }
+    toast({ title: "Logged in", description: "Welcome back!" });
   };
 
   return (
@@ -282,6 +334,52 @@ const AuthPage: React.FC = () => {
             {loading ? (mode === "login" ? "Logging in..." : "Signing up...") : (mode === "login" ? "Login" : "Sign Up")}
           </Button>
         </form>
+        {mode === "login" && (
+          <div className="border rounded-lg p-4 bg-neutral-50 space-y-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-sm font-semibold text-neutral-800">Login with phone OTP</h3>
+                <p className="text-xs text-neutral-500">We will send a 6-digit SMS code</p>
+              </div>
+              {otpSent && (
+                <button
+                  type="button"
+                  className="text-xs text-saffron hover:underline"
+                  onClick={() => { setOtpSent(false); setPhoneOtp(""); }}
+                  disabled={phoneLoading}
+                >
+                  Change number
+                </button>
+              )}
+            </div>
+            <Input
+              type="tel"
+              placeholder="Phone number"
+              value={phoneNumber}
+              onChange={(e) => setPhoneNumber(normalizePhone(e.target.value))}
+              disabled={phoneLoading || otpSent}
+            />
+            {otpSent && (
+              <Input
+                type="text"
+                inputMode="numeric"
+                maxLength={6}
+                placeholder="Enter OTP"
+                value={phoneOtp}
+                onChange={(e) => setPhoneOtp(e.target.value.replace(/[^0-9]/g, ""))}
+                disabled={phoneLoading}
+              />
+            )}
+            <Button
+              type="button"
+              className="w-full"
+              onClick={otpSent ? handleVerifyPhoneOtp : handleSendPhoneOtp}
+              disabled={phoneLoading}
+            >
+              {phoneLoading ? 'Please wait…' : otpSent ? 'Verify & Login' : 'Send OTP'}
+            </Button>
+          </div>
+        )}
         <div className="text-xs text-neutral-500 text-center">
           By continuing, you agree to our <a href="#" className="underline decoration-saffron">Terms</a> and <a href="#" className="underline decoration-saffron">Privacy Policy</a>.
         </div>

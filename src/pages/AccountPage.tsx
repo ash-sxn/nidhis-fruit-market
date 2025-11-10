@@ -18,6 +18,7 @@ type AccountOrder = {
   subtotal_cents: number | null
   coupon_snapshot: { code?: string } | null
   shipping_tracking_url: string | null
+  payment_method: string | null
   order_items: AccountOrderItem[]
 }
 
@@ -36,7 +37,7 @@ const AccountPage: React.FC = () => {
       if (!userId) return []
       const { data, error } = await supabase
         .from('orders')
-        .select('id,status,total_cents,subtotal_cents,discount_cents,shipping_cents,coupon_snapshot,created_at,shipping_tracking_url,order_items(name_snapshot,quantity,price_cents_snapshot,variant_label,variant_grams)')
+        .select('id,status,total_cents,subtotal_cents,discount_cents,shipping_cents,coupon_snapshot,created_at,shipping_tracking_url,payment_method,order_items(name_snapshot,quantity,price_cents_snapshot,variant_label,variant_grams)')
         .eq('user_id', userId)
         .order('created_at', { ascending: false })
 
@@ -148,6 +149,7 @@ const AccountPage: React.FC = () => {
                       <div>Subtotal: {formatInrFromCents(subtotal)}</div>
                       {discount > 0 && <div>Discount: -{formatInrFromCents(discount)} {order.coupon_snapshot?.code ? `(${order.coupon_snapshot.code})` : ''}</div>}
                       <div>Shipping: {formatInrFromCents(shipping)}</div>
+                      <div>Payment method: {order.payment_method === 'cod' ? 'Cash on Delivery' : 'Online'}</div>
                       <div className="font-semibold text-neutral-800">Total paid: {formatInrFromCents(order.total_cents)}</div>
                     </div>
                     <div className="mt-3">

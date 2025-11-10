@@ -147,6 +147,14 @@ export type Database = {
           currency: string
           address_snapshot: Json
           payment_ref: string | null
+          subtotal_cents: number | null
+          discount_cents: number | null
+          shipping_cents: number | null
+          shipping_option: string | null
+          coupon_id: string | null
+          coupon_snapshot: Json | null
+          email_sent_at: string | null
+          payment_method: string
           created_at: string
           updated_at: string
           shipping_provider: string | null
@@ -165,6 +173,14 @@ export type Database = {
           currency?: string
           address_snapshot: Json
           payment_ref?: string | null
+          subtotal_cents?: number | null
+          discount_cents?: number | null
+          shipping_cents?: number | null
+          shipping_option?: string | null
+          coupon_id?: string | null
+          coupon_snapshot?: Json | null
+          email_sent_at?: string | null
+          payment_method?: string
           created_at?: string
           updated_at?: string
           shipping_provider?: string | null
@@ -183,6 +199,14 @@ export type Database = {
           currency?: string
           address_snapshot?: Json
           payment_ref?: string | null
+          subtotal_cents?: number | null
+          discount_cents?: number | null
+          shipping_cents?: number | null
+          shipping_option?: string | null
+          coupon_id?: string | null
+          coupon_snapshot?: Json | null
+          email_sent_at?: string | null
+          payment_method?: string
           created_at?: string
           updated_at?: string
           shipping_provider?: string | null
@@ -301,6 +325,10 @@ export type Database = {
           p_currency: string | null
           p_address: Json | null
           p_items: Json
+          p_shipping_cents?: number | null
+          p_shipping_option?: string | null
+          p_coupon_code?: string | null
+          p_payment_method?: string | null
         }
         Returns: Json
       }

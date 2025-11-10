@@ -8,6 +8,7 @@ type OrderRow = {
   status: string
   total_cents: number
   currency: string | null
+  payment_method: string | null
   order_items: ({ price_cents_snapshot: number; quantity: number } | null)[] | null
 }
 
@@ -40,7 +41,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   const { data: order, error } = await supabase
     .from('orders')
-    .select('id,user_id,status,total_cents,currency,order_items:order_items(price_cents_snapshot,quantity)')
+    .select('id,user_id,status,total_cents,currency,payment_method,order_items:order_items(price_cents_snapshot,quantity)')
     .eq('id', receipt)
     .eq('user_id', authUser.user.id)
     .maybeSingle<OrderRow>()
@@ -52,6 +53,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (!order) {
     console.error('[razorpay/create-order] Order not found for user', { receipt, userId: authUser.user.id })
     return res.status(404).json({ error: 'Order not found' })
+  }
+  if (order.payment_method && order.payment_method !== 'online') {
+    return res.status(400).json({ error: 'Order is configured for Cash on Delivery' })
   }
   if (order.status !== 'pending') return res.status(400).json({ error: 'Order is not pending' })
 

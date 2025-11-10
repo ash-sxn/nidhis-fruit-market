@@ -35,12 +35,13 @@ type OrderRow = {
   subtotal_cents: number | null
   discount_cents: number | null
   coupon_snapshot: { code?: string } | null
+  payment_method: string | null
 }
 
 async function fetchOrders(): Promise<OrderRow[]> {
   const { data, error } = await supabase
     .from('orders')
-    .select('id,status,total_cents,subtotal_cents,discount_cents,shipping_cents,shipping_option,coupon_snapshot,created_at,address_snapshot,shipping_provider,shipping_awb,shipping_status,shipping_tracking_url,shipping_label_url,shipping_synced_at')
+    .select('id,status,total_cents,subtotal_cents,discount_cents,shipping_cents,shipping_option,coupon_snapshot,created_at,address_snapshot,shipping_provider,shipping_awb,shipping_status,shipping_tracking_url,shipping_label_url,shipping_synced_at,payment_method')
     .order('created_at', { ascending: false })
 
   if (error) throw error
@@ -223,6 +224,7 @@ export default function AdminOrdersPage() {
                       {order.coupon_snapshot?.code && (
                         <div className="text-xs text-green-500">Coupon {order.coupon_snapshot.code}</div>
                       )}
+                      <div className="text-xs text-slate-500">Payment: {order.payment_method === 'cod' ? 'Cash on Delivery' : 'Online'}</div>
                     </td>
                     <td className="px-4 py-4 text-slate-200">
                       {renderStatus(order)}
@@ -234,7 +236,7 @@ export default function AdminOrdersPage() {
                       )}
                     </td>
                     <td className="px-4 py-4 text-right space-y-2">
-                      {order.status === 'paid' && !order.shipping_awb ? (
+                      {((order.status === 'paid') || (order.payment_method === 'cod' && order.status === 'pending')) && !order.shipping_awb ? (
                         <Button
                           size="sm"
                           className="bg-emerald-500 hover:bg-emerald-400 text-slate-950"
@@ -257,6 +259,17 @@ export default function AdminOrdersPage() {
                         <span className="text-xs text-slate-500">Payment pending</span>
                       )}
                       <div className="flex flex-col gap-2 mt-2">
+                        {order.payment_method === 'cod' && order.status === 'pending' && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="border-emerald-500/30 text-emerald-300"
+                            onClick={() => statusMutation.mutate({ orderId: order.id, status: 'paid' })}
+                            disabled={statusMutation.isPending}
+                          >
+                            Mark paid (COD)
+                          </Button>
+                        )}
                         {order.status !== 'fulfilled' && order.status !== 'cancelled' && (
                           <Button
                             size="sm"

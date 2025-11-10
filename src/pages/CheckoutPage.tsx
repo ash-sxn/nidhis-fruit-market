@@ -18,6 +18,11 @@ const SHIPPING_OPTIONS = [
   { id: 'express', label: 'Express Delivery (1-2 days)', amount: 12000 }
 ] as const
 
+const PAYMENT_OPTIONS = [
+  { id: 'online', label: 'Pay Online (UPI / Cards / Netbanking)' },
+  { id: 'cod', label: 'Cash on Delivery' }
+] as const
+
 const AddressSchema = z.object({
   name: z.string().min(2),
   phone: z.string().min(7),
@@ -75,6 +80,7 @@ export default function CheckoutPage() {
   const [couponState, setCouponState] = useState<{ code: string; discount_cents: number } | null>(null)
   const [isApplyingCoupon, setIsApplyingCoupon] = useState(false)
   const [isProcessingPayment, setIsProcessingPayment] = useState(false)
+  const [paymentMethod, setPaymentMethod] = useState<typeof PAYMENT_OPTIONS[number]>(PAYMENT_OPTIONS[0])
 
   const subtotal = useMemo(() => cart.reduce((sum, r) => sum + ((r.variant?.price_cents ?? 0) * r.quantity), 0), [cart])
   const discountCents = couponState?.discount_cents ?? 0
@@ -137,12 +143,12 @@ export default function CheckoutPage() {
     }
 
     try {
-      const Razorpay = await ensureRazorpay()
       const { data: auth } = await supabase.auth.getUser()
       if (!auth.user) throw new Error('Login required')
       const { data: sessionData } = await supabase.auth.getSession()
       accessToken = sessionData.session?.access_token ?? undefined
       if (!accessToken) throw new Error('Session expired')
+      const isCod = paymentMethod.id === 'cod'
 
       const address_snapshot = { ...values }
       const itemsPayload = cart.map((item) => ({ product_id: item.product_id, variant_id: item.variant_id, quantity: item.quantity }))
@@ -155,7 +161,8 @@ export default function CheckoutPage() {
         p_items: itemsPayload,
         p_shipping_cents: shippingCents,
         p_shipping_option: selectedShipping.id,
-        p_coupon_code: couponState?.code ?? null
+        p_coupon_code: couponState?.code ?? null,
+        p_payment_method: isCod ? 'cod' : 'online'
       })
       if (orderError) throw orderError
       orderId = orderResult?.order_id as string | undefined
@@ -165,6 +172,28 @@ export default function CheckoutPage() {
         setCouponState({ code: couponState.code, discount_cents: orderResult.discount_cents })
       }
       serverTotal = orderResult?.total_cents ?? total
+
+      if (isCod) {
+        try {
+          await fetch('/api/orders/confirm-cod', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${accessToken}`
+            },
+            body: JSON.stringify({ orderId })
+          })
+        } catch (err) {
+          console.error('Failed to confirm COD order', err)
+        }
+        const { data: auth2 } = await supabase.auth.getUser()
+        if (auth2.user) await supabase.from('cart_items').delete().eq('user_id', auth2.user.id)
+        toast({ title: 'Order placed with Cash on Delivery', description: 'We will confirm your order shortly.' })
+        window.location.href = '/account?payment=cod'
+        return
+      }
+
+      const Razorpay = await ensureRazorpay()
 
       const resp = await fetch('/api/razorpay/create-order', {
         method: 'POST',
@@ -282,8 +311,31 @@ export default function CheckoutPage() {
                   ))}
                 </div>
               )}
+              <div>
+                <h3 className="text-sm font-semibold text-neutral-700">Payment method</h3>
+                <div className="mt-2 space-y-2">
+                  {PAYMENT_OPTIONS.map((option) => (
+                    <label
+                      key={option.id}
+                      className={`flex items-center justify-between rounded-lg border px-3 py-2 cursor-pointer transition-colors ${paymentMethod.id === option.id ? 'border-green bg-green/5' : 'border-neutral-200 hover:border-green/50'}`}
+                    >
+                      <span className="text-sm text-neutral-700">{option.label}</span>
+                      <input
+                        type="radio"
+                        className="sr-only"
+                        checked={paymentMethod.id === option.id}
+                        onChange={() => setPaymentMethod(option)}
+                      />
+                    </label>
+                  ))}
+                </div>
+              </div>
               <Button type="submit" disabled={!canSubmit} className="bg-green text-white hover:bg-green/85 disabled:bg-neutral-400">
-                {isProcessingPayment ? 'Preparing checkout…' : 'Pay with Razorpay'}
+                {isProcessingPayment
+                  ? 'Preparing checkout…'
+                  : paymentMethod.id === 'cod'
+                    ? 'Place COD order'
+                    : 'Pay with Razorpay'}
               </Button>
             </form>
             <aside className="bg-white rounded-xl shadow-card border p-4 h-fit space-y-4">
@@ -351,6 +403,7 @@ export default function CheckoutPage() {
                 {discountCents > 0 && (
                   <div className="flex justify-between text-sm text-green-700"><span>Discount{couponState?.code ? ` (${couponState.code})` : ''}</span><span>-{formatInrFromCents(discountCents)}</span></div>
                 )}
+                <div className="flex justify-between text-sm text-neutral-700"><span>Payment</span><span>{paymentMethod.id === 'cod' ? 'Cash on Delivery' : 'Online (Razorpay)'}</span></div>
                 <div className="flex justify-between font-semibold text-base mt-1"><span>Total</span><span>{formatInrFromCents(total)}</span></div>
               </div>
             </aside>
