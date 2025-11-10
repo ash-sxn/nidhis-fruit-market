@@ -25,20 +25,32 @@ const categoryOptions = [
   "Combos"
 ]
 
-type ProductRow = Database['public']['Tables']['products']['Row']
+type AdminProductRow = Database['public']['Tables']['products']['Row'] & {
+  variants: VariantFormValues[]
+}
+
+type VariantFormValues = {
+  id: string
+  label: string
+  grams: number | null
+  price: number
+  mrp: number
+  inventory: number
+  sku?: string | null
+  is_active: boolean
+  is_default: boolean
+}
 
 type FormValues = {
   id: string
   name: string
   slug: string
   category: string
-  price: number
-  mrp: number
-  inventory: number
   description: string
   is_active: boolean
   image_url: string | null
   image_path?: string | null
+  variants: VariantFormValues[]
 }
 
 const relativePathRegex = /^\/[A-Za-z0-9_./-]+$/
@@ -52,9 +64,6 @@ const productSchema = z.object({
   name: z.string().min(3),
   slug: z.string().min(3),
   category: z.string().min(1),
-  price: z.number().nonnegative(),
-  mrp: z.number().nonnegative(),
-  inventory: z.number().int().min(0),
   description: z.string().max(2000).optional().default(""),
   is_active: z.boolean(),
   image_url: imageUrlSchema
@@ -68,31 +77,66 @@ function toSlug(value: string) {
     .replace(/^-+|-+$/g, '')
 }
 
-function mapRowToForm(row: ProductRow): FormValues {
+function mapRowToForm(row: AdminProductRow): FormValues {
+  const variants: VariantFormValues[] = (row.variants ?? []).map((variant) => ({
+    id: variant.id,
+    label: variant.label,
+    grams: variant.grams,
+    price: variant.price_cents / 100,
+    mrp: (variant.mrp_cents ?? variant.price_cents) / 100,
+    inventory: variant.inventory ?? 0,
+    sku: variant.sku,
+    is_active: variant.is_active,
+    is_default: variant.is_default
+  }))
+
+  if (variants.length === 0) {
+    variants.push({
+      id: crypto.randomUUID(),
+      label: 'Standard Pack',
+      grams: null,
+      price: row.price_cents / 100,
+      mrp: (row.mrp_cents ?? row.price_cents) / 100,
+      inventory: row.inventory ?? 0,
+      sku: null,
+      is_active: true,
+      is_default: true
+    })
+  }
+
+  variants.sort((a, b) => {
+    if (a.is_default && !b.is_default) return -1
+    if (!a.is_default && b.is_default) return 1
+    return a.label.localeCompare(b.label)
+  })
+
   return {
     id: row.id,
     name: row.name,
     slug: row.slug ?? "",
     category: row.category,
-    price: row.price_cents / 100,
-    mrp: (row.mrp_cents ?? row.price_cents) / 100,
-    inventory: row.inventory ?? 0,
     description: row.description ?? "",
     is_active: row.is_active,
     image_url: row.image_url,
-    image_path: row.image_path ?? null
+    image_path: row.image_path ?? null,
+    variants
   }
 }
 
 function mapFormToUpsert(values: FormValues) {
+  const defaultVariant = values.variants.find((variant) => variant.is_default) ?? values.variants[0]
+  const priceCents = defaultVariant ? Math.round(defaultVariant.price * 100) : 0
+  const mrpCents = defaultVariant ? Math.round(defaultVariant.mrp * 100) : priceCents
+  const inventory = defaultVariant ? defaultVariant.inventory : 0
+
   return {
     id: values.id,
     name: values.name,
     slug: values.slug || null,
     category: values.category,
-    price_cents: Math.round(values.price * 100),
-    mrp_cents: Math.round(values.mrp * 100),
-    inventory: values.inventory,
+    price_cents: priceCents,
+    mrp_cents: mrpCents,
+    inventory,
     description: values.description || null,
     is_active: values.is_active,
     image_url: values.image_url,
@@ -106,16 +150,50 @@ export default function AdminProductsPage() {
   const [draft, setDraft] = useState<FormValues | null>(null)
   const [file, setFile] = useState<File | null>(null)
 
+  const [initialVariantIds, setInitialVariantIds] = useState<string[]>([])
+
   const { data: products = [], isLoading, isFetching, refetch } = useQuery({
     queryKey: ['admin-products'],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data: productRows, error } = await supabase
         .from('products')
         .select('*')
         .order('updated_at', { ascending: false })
 
       if (error) throw error
-      return data as ProductRow[]
+      const rows = productRows ?? []
+      if (rows.length === 0) return []
+
+      const productIds = rows.map((row) => row.id)
+      const { data: variantRows, error: variantError } = await supabase
+        .from('product_variants')
+        .select('id,product_id,label,grams,price_cents,mrp_cents,inventory,sku,is_active,is_default')
+        .in('product_id', productIds)
+        .order('sort_order', { ascending: true })
+        .order('created_at', { ascending: true })
+
+      if (variantError) throw variantError
+      const grouped = new Map<string, VariantFormValues[]>()
+      for (const variant of variantRows ?? []) {
+        const bucket = grouped.get(variant.product_id!) ?? []
+        bucket.push({
+          id: variant.id,
+          label: variant.label,
+          grams: variant.grams,
+          price: variant.price_cents / 100,
+          mrp: (variant.mrp_cents ?? variant.price_cents) / 100,
+          inventory: variant.inventory ?? 0,
+          sku: variant.sku,
+          is_active: variant.is_active,
+          is_default: variant.is_default,
+        })
+        grouped.set(variant.product_id!, bucket)
+      }
+
+      return rows.map((row) => ({
+        ...(row as Database['public']['Tables']['products']['Row']),
+        variants: grouped.get(row.id)?.sort((a, b) => Number(b.is_default) - Number(a.is_default)) ?? []
+      })) as AdminProductRow[]
     }
   })
 
@@ -130,16 +208,53 @@ export default function AdminProductsPage() {
         imagePath = upload.path
       }
 
-      const { data, error } = await supabase
+      const values = { ...payload.values, image_url: imageUrl ?? null, image_path: imagePath }
+      const baseUpsert = mapFormToUpsert(values)
+
+      const { data: productRow, error: productError } = await supabase
         .from('products')
-        .upsert({
-          ...mapFormToUpsert({ ...payload.values, image_url: imageUrl ?? null, image_path: imagePath })
-        })
+        .upsert(baseUpsert)
         .select('*')
         .single()
 
-      if (error) throw error
-      return data as ProductRow
+      if (productError) throw productError
+
+      const defaultVariant = values.variants.find((variant) => variant.is_default) ?? values.variants[0]
+      const defaultVariantId = defaultVariant?.id
+
+      const normalizedVariants = values.variants.map((variant, index) => ({
+        id: variant.id,
+        product_id: values.id,
+        label: variant.label,
+        grams: variant.grams,
+        price_cents: Math.round(Math.max(0, variant.price) * 100),
+        mrp_cents: Math.round(Math.max(variant.mrp, variant.price) * 100),
+        inventory: Math.max(0, variant.inventory),
+        sku: variant.sku ?? null,
+        is_active: variant.is_active,
+        is_default: defaultVariantId ? variant.id === defaultVariantId : index === 0,
+        sort_order: index
+      }))
+
+      if (normalizedVariants.length === 0) {
+        throw new Error('Add at least one weight option before saving')
+      }
+
+      const { error: variantError } = await supabase
+        .from('product_variants')
+        .upsert(normalizedVariants, { onConflict: 'id' })
+
+      if (variantError) throw variantError
+
+      const currentIds = normalizedVariants.map((variant) => variant.id)
+      const toDelete = initialVariantIds.filter((id) => !currentIds.includes(id))
+      if (toDelete.length > 0) {
+        await supabase.from('product_variants').delete().in('id', toDelete)
+      }
+
+      setInitialVariantIds(currentIds)
+
+      return productRow as AdminProductRow
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-products'] })
@@ -155,7 +270,7 @@ export default function AdminProductsPage() {
   })
 
   const deleteMutation = useMutation({
-    mutationFn: async (product: ProductRow) => {
+    mutationFn: async (product: AdminProductRow) => {
       const confirm = window.confirm(`Delete ${product.name}? This action cannot be undone.`)
       if (!confirm) return
       if (product.image_path) {
@@ -175,10 +290,11 @@ export default function AdminProductsPage() {
     }
   })
 
-  const openForEdit = (row: ProductRow) => {
+  const openForEdit = (row: AdminProductRow) => {
     const form = mapRowToForm(row)
     setDraft(form)
     setFile(null)
+    setInitialVariantIds(form.variants.map((variant) => variant.id))
     setDialogOpen(true)
   }
 
@@ -189,20 +305,31 @@ export default function AdminProductsPage() {
       name: '',
       slug: '',
       category: categoryOptions[0],
-      price: 0,
-      mrp: 0,
-      inventory: 0,
       description: '',
       is_active: true,
       image_url: null,
-      image_path: null
+      image_path: null,
+      variants: [
+        {
+          id: crypto.randomUUID(),
+          label: '250 g',
+          grams: 250,
+          price: 0,
+          mrp: 0,
+          inventory: 0,
+          sku: null,
+          is_active: true,
+          is_default: true
+        }
+      ]
     }
     setDraft(form)
     setFile(null)
+    setInitialVariantIds([])
     setDialogOpen(true)
   }
 
-  const statusBadge = (product: ProductRow) => (
+  const statusBadge = (product: AdminProductRow) => (
     product.is_active
       ? <Badge className="bg-emerald-500/10 text-emerald-300 border-emerald-500/30">Active</Badge>
       : <Badge variant="secondary" className="bg-slate-800 text-slate-300 border-slate-700">Hidden</Badge>
@@ -218,7 +345,12 @@ export default function AdminProductsPage() {
           <p className="text-sm text-slate-400">Create, edit, and publish catalogue entries.</p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" className="border-slate-700 text-slate-200" onClick={() => refetch()} disabled={isFetching}>
+          <Button
+            variant="outline"
+            className="border-slate-600 bg-slate-900/60 text-slate-100 hover:border-emerald-400 hover:text-emerald-200"
+            onClick={() => refetch()}
+            disabled={isFetching}
+          >
             {isFetching ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCcw className="mr-2 h-4 w-4" />}Reload
           </Button>
           <Button onClick={openForCreate} className="bg-emerald-500 hover:bg-emerald-400 text-slate-950">
@@ -392,43 +524,163 @@ export default function AdminProductsPage() {
                     ))}
                   </select>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="price">Price (₹)</Label>
-                  <Input
-                    id="price"
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    className="bg-slate-800 border-slate-700 text-slate-100"
-                    value={draft.price}
-                    onChange={(e) => setDraft((prev) => prev ? { ...prev, price: Number(e.target.value) } : prev)}
-                    required
-                  />
+              </div>
+
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <Label className="text-sm font-semibold">Weight & pricing variants</Label>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="border-emerald-400/60 text-emerald-100 bg-emerald-500/5 hover:bg-emerald-500/15 hover:text-emerald-50"
+                    onClick={() => setDraft((prev) => prev ? {
+                      ...prev,
+                      variants: [
+                        ...prev.variants,
+                        {
+                          id: crypto.randomUUID(),
+                          label: 'New pack',
+                          grams: null,
+                          price: 0,
+                          mrp: 0,
+                          inventory: 0,
+                          sku: null,
+                          is_active: true,
+                          is_default: prev.variants.length === 0
+                        }
+                      ]
+                    } : prev)}
+                  >
+                    Add weight option
+                  </Button>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="mrp">MRP (₹)</Label>
-                  <Input
-                    id="mrp"
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    className="bg-slate-800 border-slate-700 text-slate-100"
-                    value={draft.mrp}
-                    onChange={(e) => setDraft((prev) => prev ? { ...prev, mrp: Number(e.target.value) } : prev)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="inventory">Inventory</Label>
-                  <Input
-                    id="inventory"
-                    type="number"
-                    step="1"
-                    min="0"
-                    className="bg-slate-800 border-slate-700 text-slate-100"
-                    value={draft.inventory}
-                    onChange={(e) => setDraft((prev) => prev ? { ...prev, inventory: Number(e.target.value) } : prev)}
-                    required
-                  />
+                <div className="space-y-4">
+                  {draft.variants.map((variant, index) => (
+                    <div key={variant.id} className="rounded-lg border border-slate-800 bg-slate-900/40 p-4 space-y-3">
+                      <div className="flex flex-wrap items-center justify-between gap-3">
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="radio"
+                            name="default-variant"
+                            checked={variant.is_default}
+                            onChange={() => setDraft((prev) => prev ? {
+                              ...prev,
+                              variants: prev.variants.map((v) => ({ ...v, is_default: v.id === variant.id }))
+                            } : prev)}
+                          />
+                          <span className="text-xs text-slate-400">Default</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-slate-500">Active</span>
+                          <Switch
+                            checked={variant.is_active}
+                            onCheckedChange={(checked) => setDraft((prev) => prev ? {
+                              ...prev,
+                              variants: prev.variants.map((v) => v.id === variant.id ? { ...v, is_active: checked } : v)
+                            } : prev)}
+                          />
+                          {draft.variants.length > 1 && (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="text-rose-400 hover:text-rose-300"
+                              onClick={() => setDraft((prev) => prev ? {
+                                ...prev,
+                                variants: prev.variants.filter((v) => v.id !== variant.id)
+                              } : prev)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                      <div className="grid gap-3 md:grid-cols-5">
+                        <div className="space-y-1 md:col-span-2">
+                          <Label className="text-xs uppercase tracking-wide text-slate-500">Label</Label>
+                          <Input
+                            value={variant.label}
+                            onChange={(e) => setDraft((prev) => prev ? {
+                              ...prev,
+                              variants: prev.variants.map((v) => v.id === variant.id ? { ...v, label: e.target.value } : v)
+                            } : prev)}
+                            className="bg-slate-800 border-slate-700 text-slate-100"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs uppercase tracking-wide text-slate-500">Weight (g)</Label>
+                          <Input
+                            type="number"
+                            min="0"
+                            value={variant.grams ?? ''}
+                            placeholder="e.g. 250"
+                            className="bg-slate-800 border-slate-700 text-slate-100"
+                            onChange={(e) => setDraft((prev) => prev ? {
+                              ...prev,
+                              variants: prev.variants.map((v) => v.id === variant.id ? { ...v, grams: e.target.value ? Number(e.target.value) : null } : v)
+                            } : prev)}
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs uppercase tracking-wide text-slate-500">Price (₹)</Label>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            value={variant.price}
+                            className="bg-slate-800 border-slate-700 text-slate-100"
+                            onChange={(e) => setDraft((prev) => prev ? {
+                              ...prev,
+                              variants: prev.variants.map((v) => v.id === variant.id ? { ...v, price: Number(e.target.value) } : v)
+                            } : prev)}
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs uppercase tracking-wide text-slate-500">MRP (₹)</Label>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            value={variant.mrp}
+                            className="bg-slate-800 border-slate-700 text-slate-100"
+                            onChange={(e) => setDraft((prev) => prev ? {
+                              ...prev,
+                              variants: prev.variants.map((v) => v.id === variant.id ? { ...v, mrp: Number(e.target.value) } : v)
+                            } : prev)}
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs uppercase tracking-wide text-slate-500">Inventory</Label>
+                          <Input
+                            type="number"
+                            min="0"
+                            value={variant.inventory}
+                            className="bg-slate-800 border-slate-700 text-slate-100"
+                            onChange={(e) => setDraft((prev) => prev ? {
+                              ...prev,
+                              variants: prev.variants.map((v) => v.id === variant.id ? { ...v, inventory: Number(e.target.value) } : v)
+                            } : prev)}
+                          />
+                        </div>
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs uppercase tracking-wide text-slate-500">SKU (optional)</Label>
+                        <Input
+                          value={variant.sku ?? ''}
+                          placeholder="e.g. CASHEW-250G"
+                          className="bg-slate-800 border-slate-700 text-slate-100"
+                          onChange={(e) => setDraft((prev) => prev ? {
+                            ...prev,
+                            variants: prev.variants.map((v) => v.id === variant.id ? { ...v, sku: e.target.value } : v)
+                          } : prev)}
+                        />
+                      </div>
+                      {!variant.is_active && (
+                        <p className="text-xs text-rose-400">Hidden from storefront until reactivated.</p>
+                      )}
+                    </div>
+                  ))}
                 </div>
               </div>
 

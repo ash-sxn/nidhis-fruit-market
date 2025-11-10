@@ -33,6 +33,7 @@ Living document tracking everything needed to ship a reliable, secure, and perfo
 - [ ] Replace local static arrays with Supabase fetch across all pages
 - [ ] Product detail pages by slug with SEO metadata and JSON‑LD
 - [ ] Currency formatting via `Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' })`
+- [x] Product variants (weight-based pricing) available across storefront, checkout, and admin tooling
 
 Acceptance:
 - [ ] Visiting any category shows products from Supabase with correct images and prices
@@ -76,6 +77,7 @@ Acceptance:
 - [ ] Secure roles: only service role or admin can assign roles
 - [ ] Admin UI to manage products (CRUD), inventory, prices, and visibility
 - [ ] Admin orders view with status updates and basic notes
+- [x] Admin UI supports weight variants (add/edit/delete, default selection, per-variant inventory)
 
 Acceptance:
 - [ ] Non‑admins cannot write to products or roles via RLS

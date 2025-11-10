@@ -64,6 +64,13 @@ This project is built with:
 
 Simply open [Lovable](https://lovable.dev/projects/23bf365f-078f-410f-a3a6-f10604944855) and click on Share -> Publish.
 
+## Testing & QA
+
+- `npm run test:e2e` – launches the Playwright smoke suite. By default the tests start `npm run preview` on port 4173; set `E2E_BASE_URL` if you want to target a deployed URL (e.g., `E2E_BASE_URL=https://your-ngrok-url npx playwright test`).
+- GitHub Actions (`.github/workflows/ci.yml`) runs `npm ci`, `npm run build`, installs Playwright browsers, and executes the same suite on every push/PR.
+
+These tests cover homepage rendering, category listing, and individual product detail pages so that we catch routing/Supabase regressions before shipping.
+
 ## Razorpay configuration
 
 To accept payments in production, configure the following environment variables for both the frontend deployment (Vercel) and the Supabase Edge functions:
@@ -116,6 +123,7 @@ Never commit `.env` files or paste keys directly into source. If a secret change
 - If you created the project before the storage migration, run `npm run migrate:product-images` (with `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY` exported) to upload the legacy `/public/images` assets into Supabase Storage and rewrite the corresponding product URLs.
 - Admin accounts must enroll in TOTP-based MFA. On first login the dashboard redirects to `/admin/mfa` where a QR code is generated and verified before any privileged routes are available. Existing admins can invite or revoke team members from `/admin/team`.
 - If Shiprocket credentials are present, the backend manifests prepaid orders automatically and the admin orders screen exposes buttons to generate shipments or refresh tracking data.
+- Product variants (weight/pack sizes) are managed under each product. You can add multiple variants, set one as default, control inventory per weight, and toggle visibility without duplicating the product record.
 
 ### Verifying your webhook form in the Razorpay dashboard
 

@@ -11,6 +11,7 @@ import { categories as categoryList } from "@/config/categories"
 import { Heart, ShoppingCart } from "lucide-react"
 import { useAddToCart } from "@/hooks/useAddToCart"
 import { useAddToWishlist } from "@/hooks/useAddToWishlist"
+import { toast } from "@/components/ui/use-toast"
 
 const sortOptions = [
   { value: 'featured', label: 'Featured' },
@@ -42,12 +43,13 @@ type ProductRow = {
   inventory: number | null
   image_url: string | null
   updated_at: string
+  default_variant_id: string | null
 }
 
 async function fetchProducts(filters: FilterState): Promise<ProductRow[]> {
   let query = supabase
     .from('products')
-    .select('id,name,slug,category,price_cents,mrp_cents,inventory,image_url,updated_at')
+    .select('id,name,slug,category,price_cents,mrp_cents,inventory,image_url,updated_at,default_variant_id')
     .eq('is_active', true)
     .limit(60)
 
@@ -202,9 +204,15 @@ export default function ProductsPage() {
                       {!hasStock && <div className="text-xs text-rose-500 mb-3">Out of stock</div>}
                       <div className="mt-auto flex gap-3 items-center">
                         <Button
-                          className="bg-green text-white hover:bg-green/85 flex-1 disabled:bg-neutral-400"
-                          onClick={() => addToCart.mutate({ product_id: product.id })}
-                          disabled={!hasStock || addToCart.isPending}
+                        className="bg-green text-white hover:bg-green/85 flex-1 disabled:bg-neutral-400"
+                        onClick={() => {
+                          if (!product.default_variant_id) {
+                            toast({ title: 'Select weight on product page', description: 'Open the product to choose a pack size.', variant: 'destructive' })
+                            return
+                          }
+                          addToCart.mutate({ product_id: product.id, variant_id: product.default_variant_id, quantity: 1 })
+                        }}
+                        disabled={!hasStock || addToCart.isPending || !product.default_variant_id}
                         >
                           <ShoppingCart className="w-4 h-4 mr-2" /> Add to cart
                         </Button>

@@ -33,8 +33,10 @@ type AddressInput = z.infer<typeof AddressSchema>
 type CartRow = {
   id: string
   product_id: string
+  variant_id: string
   quantity: number
-  product?: { id: string; name: string; price_cents: number; inventory: number | null } | null
+  product?: { id: string; name: string; image_url: string | null } | null
+  variant?: { id: string; label: string; price_cents: number; mrp_cents: number | null; inventory: number | null; grams: number | null } | null
 }
 
 async function fetchCartWithProducts(): Promise<CartRow[]> {
@@ -43,15 +45,26 @@ async function fetchCartWithProducts(): Promise<CartRow[]> {
   if (!uid) return []
   const { data, error } = await supabase
     .from('cart_items')
-    .select('id,product_id,quantity')
+    .select(`
+      id,
+      product_id,
+      variant_id,
+      quantity,
+      product:products(id,name,image_url),
+      variant:product_variants(id,label,price_cents,mrp_cents,inventory,grams)
+    `)
     .eq('user_id', uid)
     .order('added_at', { ascending: false })
   if (error) throw error
-  if (!data || data.length === 0) return []
-  const ids = Array.from(new Set(data.map(r => r.product_id)))
-  const { data: products } = await supabase.from('products').select('id,name,price_cents,inventory').in('id', ids)
-  const map = new Map((products ?? []).map(p => [p.id, p]))
-  return data.map(r => ({ ...r, product: map.get(r.product_id) ?? null }))
+  if (!data) return []
+  return data.map((row) => ({
+    id: row.id,
+    product_id: row.product_id,
+    variant_id: row.variant_id,
+    quantity: row.quantity,
+    product: (row as any).product ?? null,
+    variant: (row as any).variant ?? null
+  }))
 }
 
 export default function CheckoutPage() {
@@ -63,11 +76,11 @@ export default function CheckoutPage() {
   const [isApplyingCoupon, setIsApplyingCoupon] = useState(false)
   const [isProcessingPayment, setIsProcessingPayment] = useState(false)
 
-  const subtotal = useMemo(() => cart.reduce((sum, r) => sum + (r.product?.price_cents ?? 0) * r.quantity, 0), [cart])
+  const subtotal = useMemo(() => cart.reduce((sum, r) => sum + ((r.variant?.price_cents ?? 0) * r.quantity), 0), [cart])
   const discountCents = couponState?.discount_cents ?? 0
   const shippingCents = selectedShipping.amount
   const total = useMemo(() => Math.max(subtotal - discountCents + shippingCents, 0), [subtotal, discountCents, shippingCents])
-  const outOfStockItems = cart.filter((item) => (item.product?.inventory ?? 0) < item.quantity)
+  const outOfStockItems = cart.filter((item) => (item.variant?.inventory ?? 0) < item.quantity)
   const canSubmit = !isSubmitting && !isProcessingPayment && cart.length > 0 && outOfStockItems.length === 0
 
   const handleApplyCoupon = async () => {
@@ -106,11 +119,11 @@ export default function CheckoutPage() {
     let accessToken: string | undefined
     setIsProcessingPayment(true)
 
-    const unavailable = cart.find((item) => (item.product?.inventory ?? 0) < item.quantity)
+    const unavailable = cart.find((item) => (item.variant?.inventory ?? 0) < item.quantity)
     if (unavailable) {
       toast({
         title: 'Adjust your cart',
-        description: `${unavailable.product?.name ?? 'One product'} only has ${unavailable.product?.inventory ?? 0} in stock.`,
+        description: `${unavailable.product?.name ?? 'One product'} (${unavailable.variant?.label ?? 'selected weight'}) only has ${unavailable.variant?.inventory ?? 0} in stock.`,
         variant: 'destructive'
       })
       setIsProcessingPayment(false)
@@ -132,7 +145,7 @@ export default function CheckoutPage() {
       if (!accessToken) throw new Error('Session expired')
 
       const address_snapshot = { ...values }
-      const itemsPayload = cart.map((item) => ({ product_id: item.product_id, quantity: item.quantity }))
+      const itemsPayload = cart.map((item) => ({ product_id: item.product_id, variant_id: item.variant_id, quantity: item.quantity }))
 
       let serverTotal = total
 
@@ -263,7 +276,9 @@ export default function CheckoutPage() {
               {outOfStockItems.length > 0 && (
                 <div className="text-sm text-rose-600">
                   {outOfStockItems.map((item) => (
-                    <div key={item.id}>{item.product?.name ?? 'Product'} only has {item.product?.inventory ?? 0} left.</div>
+                    <div key={item.id}>
+                      {item.product?.name ?? 'Product'} ({item.variant?.label ?? 'selected weight'}) only has {item.variant?.inventory ?? 0} left.
+                    </div>
                   ))}
                 </div>
               )}
@@ -277,10 +292,10 @@ export default function CheckoutPage() {
                 {cart.map((r) => (
                   <li key={r.id} className="flex justify-between text-sm">
                     <span>
-                      {r.product?.name ?? 'Product'} × {r.quantity}
-                      {(r.product?.inventory ?? 0) < r.quantity && <span className="text-rose-500 ml-2">({r.product?.inventory ?? 0} available)</span>}
+                      {r.product?.name ?? 'Product'}{r.variant?.label ? ` • ${r.variant.label}` : ''} × {r.quantity}
+                      {(r.variant?.inventory ?? 0) < r.quantity && <span className="text-rose-500 ml-2">({r.variant?.inventory ?? 0} available)</span>}
                     </span>
-                    <span>{formatInrFromCents((r.product?.price_cents ?? 0) * r.quantity)}</span>
+                    <span>{formatInrFromCents((r.variant?.price_cents ?? 0) * r.quantity)}</span>
                   </li>
                 ))}
               </ul>

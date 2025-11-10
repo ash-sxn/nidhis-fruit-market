@@ -25,6 +25,7 @@ export type Database = {
           search_document: unknown | null
           is_active: boolean
           created_at: string
+          default_variant_id: string | null
         }
         Insert: {
           id?: string
@@ -41,6 +42,7 @@ export type Database = {
           search_document?: unknown | null
           is_active?: boolean
           created_at?: string
+          default_variant_id?: string | null
         }
         Update: {
           id?: string
@@ -57,6 +59,7 @@ export type Database = {
           search_document?: unknown | null
           is_active?: boolean
           created_at?: string
+          default_variant_id?: string | null
         }
         Relationships: []
       }
@@ -67,6 +70,7 @@ export type Database = {
           product_id: string
           quantity: number
           user_id: string
+          variant_id: string
         }
         Insert: {
           added_at?: string
@@ -74,6 +78,7 @@ export type Database = {
           product_id: string
           quantity?: number
           user_id: string
+          variant_id?: string
         }
         Update: {
           added_at?: string
@@ -81,6 +86,55 @@ export type Database = {
           product_id?: string
           quantity?: number
           user_id?: string
+          variant_id?: string
+        }
+        Relationships: []
+      }
+      product_variants: {
+        Row: {
+          id: string
+          product_id: string
+          label: string
+          grams: number | null
+          price_cents: number
+          mrp_cents: number | null
+          inventory: number
+          sku: string | null
+          is_active: boolean
+          is_default: boolean
+          sort_order: number
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          product_id: string
+          label: string
+          grams?: number | null
+          price_cents: number
+          mrp_cents?: number | null
+          inventory?: number
+          sku?: string | null
+          is_active?: boolean
+          is_default?: boolean
+          sort_order?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          product_id?: string
+          label?: string
+          grams?: number | null
+          price_cents?: number
+          mrp_cents?: number | null
+          inventory?: number
+          sku?: string | null
+          is_active?: boolean
+          is_default?: boolean
+          sort_order?: number
+          created_at?: string
+          updated_at?: string
         }
         Relationships: []
       }
@@ -149,6 +203,9 @@ export type Database = {
           name_snapshot: string
           price_cents_snapshot: number
           quantity: number
+          variant_id: string
+          variant_label: string | null
+          variant_grams: number | null
         }
         Insert: {
           id?: string
@@ -157,6 +214,9 @@ export type Database = {
           name_snapshot: string
           price_cents_snapshot: number
           quantity?: number
+          variant_id: string
+          variant_label?: string | null
+          variant_grams?: number | null
         }
         Update: {
           id?: string
@@ -165,6 +225,9 @@ export type Database = {
           name_snapshot?: string
           price_cents_snapshot?: number
           quantity?: number
+          variant_id?: string
+          variant_label?: string | null
+          variant_grams?: number | null
         }
         Relationships: []
       }

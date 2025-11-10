@@ -4,6 +4,7 @@ import ImageWithFallback from "@/components/ImageWithFallback"
 import { formatInrFromCents } from "@/lib/utils"
 import { useProducts } from "@/hooks/useProducts"
 import { useAddToCart } from "@/hooks/useAddToCart"
+import { toast } from "@/components/ui/use-toast"
 
 const FrequentlyBought = () => {
   const { data: rows = [], isLoading, error } = useProducts("Bestsellers")
@@ -17,6 +18,8 @@ const FrequentlyBought = () => {
     slug: row.slug ?? undefined,
     originalPriceCents: row.mrp_cents ?? undefined,
     inventory: row.inventory ?? null,
+    variantId: row.default_variant_id ?? null,
+    variantLabel: null,
   }))
 
   return (
@@ -55,8 +58,14 @@ const FrequentlyBought = () => {
                     <p className="text-saffron font-semibold text-base mb-2">{formatInrFromCents(product.priceCents)}</p>
                     <Button
                       className="bg-green text-white hover:bg-green/80 mt-auto px-6 disabled:bg-neutral-400"
-                      onClick={() => addToCart.mutate({ product_id: product.id, quantity: 1 })}
-                      disabled={addToCart.isPending || outOfStock}
+                      onClick={() => {
+                        if (!product.variantId) {
+                          toast({ title: 'Select weight on product page', description: 'Open the product to choose a pack size.', variant: 'destructive' })
+                          return
+                        }
+                        addToCart.mutate({ product_id: product.id, variant_id: product.variantId, quantity: 1 })
+                      }}
+                      disabled={addToCart.isPending || outOfStock || !product.variantId}
                     >
                       {outOfStock ? 'Out of stock' : 'Add to cart'}
                     </Button>

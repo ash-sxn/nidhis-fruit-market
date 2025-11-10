@@ -7,7 +7,7 @@ import ImageWithFallback from "@/components/ImageWithFallback";
 import { useQuery } from "@tanstack/react-query";
 import { formatInrFromCents } from "@/lib/utils";
 
-type AccountOrderItem = { name_snapshot: string; quantity: number; price_cents_snapshot: number }
+type AccountOrderItem = { name_snapshot: string; quantity: number; price_cents_snapshot: number; variant_label: string | null; variant_grams: number | null }
 type AccountOrder = {
   id: string
   status: string
@@ -36,7 +36,7 @@ const AccountPage: React.FC = () => {
       if (!userId) return []
       const { data, error } = await supabase
         .from('orders')
-        .select('id,status,total_cents,subtotal_cents,discount_cents,shipping_cents,coupon_snapshot,created_at,shipping_tracking_url,order_items(name_snapshot,quantity,price_cents_snapshot)')
+        .select('id,status,total_cents,subtotal_cents,discount_cents,shipping_cents,coupon_snapshot,created_at,shipping_tracking_url,order_items(name_snapshot,quantity,price_cents_snapshot,variant_label,variant_grams)')
         .eq('user_id', userId)
         .order('created_at', { ascending: false })
 
@@ -153,12 +153,15 @@ const AccountPage: React.FC = () => {
                     <div className="mt-3">
                       <h3 className="text-xs font-semibold text-neutral-500 uppercase mb-1">Items</h3>
                       <ul className="space-y-1 text-sm text-neutral-700">
-                        {order.order_items?.map((item, idx) => (
-                          <li key={`${item.name_snapshot}-${idx}`} className="flex justify-between">
-                            <span>{item.name_snapshot} × {item.quantity}</span>
-                            <span>{formatInrFromCents((item.price_cents_snapshot ?? 0) * (item.quantity ?? 0))}</span>
-                          </li>
-                        ))}
+                        {order.order_items?.map((item, idx) => {
+                          const label = item.variant_label ? `${item.name_snapshot} (${item.variant_label})` : item.name_snapshot
+                          return (
+                            <li key={`${item.name_snapshot}-${idx}`} className="flex justify-between">
+                              <span>{label} × {item.quantity}</span>
+                              <span>{formatInrFromCents((item.price_cents_snapshot ?? 0) * (item.quantity ?? 0))}</span>
+                            </li>
+                          )
+                        })}
                       </ul>
                     </div>
                     {order.shipping_tracking_url && (

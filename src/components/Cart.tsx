@@ -11,14 +11,21 @@ import { toast } from "@/components/ui/use-toast"
 type CartItem = {
   id: string
   product_id: string
+  variant_id: string
   quantity: number
   added_at: string
   product: {
     id: string
     name: string
     image_url: string | null
+  } | null
+  variant: {
+    id: string
+    label: string
     price_cents: number
+    mrp_cents: number | null
     inventory: number | null
+    grams: number | null
   } | null
 }
 
@@ -30,26 +37,29 @@ const fetchCartItems = async (): Promise<CartItem[]> => {
 
   const { data, error } = await supabase
     .from("cart_items")
-    .select("id, product_id, quantity, added_at")
+    .select(`
+      id,
+      product_id,
+      variant_id,
+      quantity,
+      added_at,
+      product:products(id,name,image_url),
+      variant:product_variants(id,label,price_cents,mrp_cents,inventory,grams)
+    `)
     .eq("user_id", userId)
     .order("added_at", { ascending: false })
 
   if (error) throw error
-  if (!data || data.length === 0) return []
-
-  const productIds = Array.from(new Set(data.map((item) => item.product_id)))
-  const { data: productRows, error: productError } = await supabase
-    .from("products")
-    .select("id, name, image_url, price_cents, inventory")
-    .in("id", productIds)
-
-  if (productError) throw productError
-
-  const productById = new Map((productRows ?? []).map((product) => [product.id, product]))
+  if (!data) return []
 
   return data.map((item) => ({
-    ...item,
-    product: productById.get(item.product_id) ?? null,
+    id: item.id,
+    product_id: item.product_id,
+    variant_id: item.variant_id,
+    quantity: item.quantity,
+    added_at: item.added_at,
+    product: (item as any).product ?? null,
+    variant: (item as any).variant ?? null,
   }))
 }
 
@@ -58,16 +68,16 @@ const removeCartItem = async (id: string) => {
   if (error) throw error
 }
 
-const updateCartItemQty = async ({ id, qty, product_id }: { id: string; qty: number; product_id: string }) => {
-  const { data: product, error: productError } = await supabase
-    .from('products')
-    .select('inventory, name')
-    .eq('id', product_id)
+const updateCartItemQty = async ({ id, qty, product_id, variant_id }: { id: string; qty: number; product_id: string; variant_id: string }) => {
+  const { data: variant, error: variantError } = await supabase
+    .from('product_variants')
+    .select('inventory, label')
+    .eq('id', variant_id)
     .maybeSingle()
-  if (productError) throw productError
-  const available = product?.inventory ?? 0
+  if (variantError) throw variantError
+  const available = variant?.inventory ?? 0
   if (qty > available) {
-    throw new Error(`Only ${available} left for ${product?.name ?? 'this product'}`)
+    throw new Error(`Only ${available} left for ${variant?.label ?? 'this option'}`)
   }
   const { error } = await supabase.from('cart_items').update({ quantity: qty }).eq('id', id)
   if (error) throw error
@@ -102,7 +112,7 @@ const Cart: React.FC = () => {
 
   const totals = data.reduce(
     (acc, item) => {
-      const unit = item.product?.price_cents ?? 0
+      const unit = item.variant?.price_cents ?? 0
       const line = unit * item.quantity
       return {
         subtotal: acc.subtotal + line,
@@ -128,7 +138,8 @@ const Cart: React.FC = () => {
           <ul className="space-y-6">
             {data.map((item) => {
               const product = item.product
-              const lineTotal = (product?.price_cents ?? 0) * item.quantity
+              const variant = item.variant
+              const lineTotal = (variant?.price_cents ?? 0) * item.quantity
 
               return (
                 <li key={item.id} className="flex items-center justify-between border rounded-md p-4 gap-4">
@@ -142,8 +153,11 @@ const Cart: React.FC = () => {
                     </div>
                     <div>
                       <div className="font-semibold">{product?.name ?? "Unknown product"}</div>
+                      {variant?.label && (
+                        <div className="text-xs text-neutral-500">{variant.label}</div>
+                      )}
                       <div className="text-sm text-neutral-500">
-                        {formatInrFromCents(product?.price_cents ?? 0)} each
+                        {formatInrFromCents(variant?.price_cents ?? 0)} each
                       </div>
                     </div>
                   </div>
@@ -153,7 +167,7 @@ const Cart: React.FC = () => {
                       variant="ghost"
                       onClick={() => {
                         if (item.quantity > 1) {
-                          qtyMutation.mutate({ id: item.id, qty: item.quantity - 1, product_id: item.product_id })
+                          qtyMutation.mutate({ id: item.id, qty: item.quantity - 1, product_id: item.product_id, variant_id: item.variant_id })
                         } else {
                           removeMutation.mutate(item.id)
                         }
@@ -167,8 +181,8 @@ const Cart: React.FC = () => {
                       size="icon"
                       variant="ghost"
                       onClick={() => {
-                        const max = item.product?.inventory ?? Number.POSITIVE_INFINITY
-                        if (item.product && max !== null && max !== undefined && item.quantity >= max) {
+                        const max = item.variant?.inventory ?? Number.POSITIVE_INFINITY
+                        if (item.variant && max !== null && max !== undefined && item.quantity >= max) {
                           toast({
                             title: 'Limit reached',
                             description: `Only ${max} left in stock`,
@@ -176,7 +190,7 @@ const Cart: React.FC = () => {
                           })
                           return
                         }
-                        qtyMutation.mutate({ id: item.id, qty: item.quantity + 1, product_id: item.product_id })
+                        qtyMutation.mutate({ id: item.id, qty: item.quantity + 1, product_id: item.product_id, variant_id: item.variant_id })
                       }}
                       disabled={qtyMutation.isPending}
                     >
@@ -192,8 +206,8 @@ const Cart: React.FC = () => {
                       Remove
                     </Button>
                   </div>
-                  {item.product?.inventory !== null && item.quantity >= (item.product.inventory ?? 0) && (
-                    <p className="text-xs text-rose-500 mt-2">Only {item.product.inventory} left in stock.</p>
+                  {item.variant?.inventory !== null && item.quantity >= (item.variant.inventory ?? 0) && (
+                    <p className="text-xs text-rose-500 mt-2">Only {item.variant.inventory} left in stock.</p>
                   )}
                 </li>
               )

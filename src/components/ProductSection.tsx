@@ -7,6 +7,7 @@ import { Heart, ShoppingCart } from "lucide-react"
 import { useAddToCart } from "@/hooks/useAddToCart"
 import { useAddToWishlist } from "@/hooks/useAddToWishlist"
 import { Link } from "react-router-dom"
+import { toast } from "@/components/ui/use-toast"
 
 export type ProductSectionItem = {
   id?: string
@@ -17,6 +18,8 @@ export type ProductSectionItem = {
   slug?: string
   description?: string
   inventory?: number | null
+  variantId?: string | null
+  variantLabel?: string | null
 }
 
 interface ProductSectionProps {
@@ -38,7 +41,11 @@ const ProductSection: React.FC<ProductSectionProps> = ({
 
   const handleAddToCart = (product: ProductSectionItem) => {
     const product_id = resolveProductId(product)
-    addToCart.mutate({ product_id, quantity: 1 })
+    if (!product.variantId) {
+      toast({ title: 'Select weight on product page', description: 'Open the product details to choose a pack size.', variant: 'destructive' })
+      return
+    }
+    addToCart.mutate({ product_id, variant_id: product.variantId, quantity: 1 })
   }
 
   const handleAddToWishlist = (product: ProductSectionItem) => {
@@ -87,6 +94,7 @@ const ProductSection: React.FC<ProductSectionProps> = ({
             return (
               <div
                 key={resolveProductId(product)}
+                data-testid="product-card"
                 className="rounded-xl bg-neutral-50 shadow-card hover:shadow-lg transition-shadow hover:-translate-y-1 p-4 flex flex-col items-center border border-gold/10 group"
               >
                 {productUrl ? (
@@ -116,7 +124,7 @@ const ProductSection: React.FC<ProductSectionProps> = ({
                   <Button
                     className="bg-green text-white hover:bg-green/80 px-4 flex-1 disabled:bg-neutral-400"
                     onClick={() => handleAddToCart(product)}
-                    disabled={addToCart.isPending || isOutOfStock}
+                    disabled={addToCart.isPending || isOutOfStock || !product.variantId}
                   >
                     {isOutOfStock ? 'Out of stock' : <><ShoppingCart className="mr-2 w-4 h-4" /> Add to cart</>}
                   </Button>

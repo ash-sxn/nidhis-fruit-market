@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/use-toast";
 import { Eye, EyeOff } from "lucide-react";
 
+const siteUrl = import.meta.env.VITE_PUBLIC_SITE_URL || window.location.origin
+
 const AuthPage: React.FC = () => {
   const [mode, setMode] = useState<"login" | "signup">("login");
   const [loading, setLoading] = useState(false);
@@ -84,7 +86,7 @@ const AuthPage: React.FC = () => {
       setLoading(false);
       return;
     }
-    const redirectUrl = `${window.location.origin}/`;
+    const redirectUrl = `${siteUrl}/`;
     const { error } = await supabase.auth.signUp({
       email,
       password,
@@ -135,7 +137,7 @@ const AuthPage: React.FC = () => {
       return;
     }
     setForgotPwLoading(true);
-    const redirectUrl = `${window.location.origin}/auth`;
+    const redirectUrl = `${siteUrl}/auth`;
     const { error } = await supabase.auth.resetPasswordForEmail(forgotPwEmail, {
       redirectTo: redirectUrl,
     });
