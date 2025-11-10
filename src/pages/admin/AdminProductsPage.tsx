@@ -123,11 +123,21 @@ function mapRowToForm(row: AdminProductRow): FormValues {
   }
 }
 
+function coerceCurrency(value?: number | null) {
+  return Number.isFinite(value) ? Number(value) : 0
+}
+
+function coerceInventory(value?: number | null) {
+  return Number.isFinite(value) ? Math.max(0, Math.floor(Number(value))) : 0
+}
+
 function mapFormToUpsert(values: FormValues) {
   const defaultVariant = values.variants.find((variant) => variant.is_default) ?? values.variants[0]
-  const priceCents = defaultVariant ? Math.round(defaultVariant.price * 100) : 0
-  const mrpCents = defaultVariant ? Math.round(defaultVariant.mrp * 100) : priceCents
-  const inventory = defaultVariant ? defaultVariant.inventory : 0
+  const fallbackPrice = coerceCurrency(defaultVariant?.price)
+  const fallbackMrp = coerceCurrency(defaultVariant?.mrp ?? defaultVariant?.price)
+  const priceCents = Math.round(fallbackPrice * 100)
+  const mrpCents = Math.round(Math.max(fallbackMrp, fallbackPrice) * 100)
+  const inventory = coerceInventory(defaultVariant?.inventory)
 
   return {
     id: values.id,
@@ -222,19 +232,25 @@ export default function AdminProductsPage() {
       const defaultVariant = values.variants.find((variant) => variant.is_default) ?? values.variants[0]
       const defaultVariantId = defaultVariant?.id
 
-      const normalizedVariants = values.variants.map((variant, index) => ({
-        id: variant.id,
-        product_id: values.id,
-        label: variant.label,
-        grams: variant.grams,
-        price_cents: Math.round(Math.max(0, variant.price) * 100),
-        mrp_cents: Math.round(Math.max(variant.mrp, variant.price) * 100),
-        inventory: Math.max(0, variant.inventory),
-        sku: variant.sku ?? null,
-        is_active: variant.is_active,
-        is_default: defaultVariantId ? variant.id === defaultVariantId : index === 0,
-        sort_order: index
-      }))
+      const normalizedVariants = values.variants.map((variant, index) => {
+        const safePrice = coerceCurrency(variant.price)
+        const safeMrp = Math.max(safePrice, coerceCurrency(variant.mrp))
+        const safeInventory = coerceInventory(variant.inventory)
+
+        return {
+          id: variant.id,
+          product_id: values.id,
+          label: variant.label,
+          grams: variant.grams,
+        price_cents: Math.round(safePrice * 100),
+        mrp_cents: Math.round(safeMrp * 100),
+        inventory: safeInventory,
+          sku: variant.sku ?? null,
+          is_active: variant.is_active,
+          is_default: defaultVariantId ? variant.id === defaultVariantId : index === 0,
+          sort_order: index
+        }
+      })
 
       if (normalizedVariants.length === 0) {
         throw new Error('Add at least one weight option before saving')
