@@ -9,6 +9,48 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      addresses: {
+        Row: {
+          id: string
+          user_id: string
+          name: string
+          phone: string
+          line1: string
+          line2: string | null
+          city: string
+          state: string
+          pincode: string
+          is_default: boolean
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          name: string
+          phone: string
+          line1: string
+          line2?: string | null
+          city: string
+          state: string
+          pincode: string
+          is_default?: boolean
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          name?: string
+          phone?: string
+          line1?: string
+          line2?: string | null
+          city?: string
+          state?: string
+          pincode?: string
+          is_default?: boolean
+          created_at?: string
+        }
+        Relationships: []
+      }
       products: {
         Row: {
           id: string
@@ -460,3 +502,27 @@ export const Constants = {
     },
   },
 } as const
+      profile_links: {
+        Row: {
+          id: string
+          user_id: string
+          label: string
+          url: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          label: string
+          url: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          label?: string
+          url?: string
+          created_at?: string
+        }
+        Relationships: []
+      }

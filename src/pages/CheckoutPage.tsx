@@ -12,6 +12,7 @@ import { formatInrFromCents } from "@/lib/utils"
 import { ensureRazorpay } from "@/lib/razorpay"
 import { toast } from "@/components/ui/use-toast"
 import { Input } from "@/components/ui/input"
+import type { Database } from "@/integrations/supabase/types"
 
 const SHIPPING_OPTIONS = [
   { id: 'standard', label: 'Standard Delivery (3-5 days)', amount: 6000 },
@@ -19,7 +20,7 @@ const SHIPPING_OPTIONS = [
 ] as const
 
 const PAYMENT_OPTIONS = [
-  { id: 'online', label: 'Pay Online (UPI / Cards / Netbanking)' },
+  { id: 'online', label: 'Pay online (UPI / Cards / Netbanking)' },
   { id: 'cod', label: 'Cash on Delivery' }
 ] as const
 
@@ -43,6 +44,8 @@ type CartRow = {
   product?: { id: string; name: string; image_url: string | null } | null
   variant?: { id: string; label: string; price_cents: number; mrp_cents: number | null; inventory: number | null; grams: number | null } | null
 }
+
+type SavedAddress = Database['public']['Tables']['addresses']['Row']
 
 async function fetchCartWithProducts(): Promise<CartRow[]> {
   const { data: auth } = await supabase.auth.getUser()
@@ -72,15 +75,30 @@ async function fetchCartWithProducts(): Promise<CartRow[]> {
   }))
 }
 
+async function fetchSavedAddresses(): Promise<SavedAddress[]> {
+  const { data: auth } = await supabase.auth.getUser()
+  const uid = auth.user?.id
+  if (!uid) return []
+  const { data, error } = await supabase
+    .from('addresses')
+    .select('*')
+    .eq('user_id', uid)
+    .order('is_default', { ascending: false })
+    .order('created_at', { ascending: false })
+  if (error) throw error
+  return data ?? []
+}
+
 export default function CheckoutPage() {
   const { data: cart = [], isLoading } = useQuery({ queryKey: ['cart-with-products'], queryFn: fetchCartWithProducts })
-  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<AddressInput>({ resolver: zodResolver(AddressSchema) })
+  const { register, handleSubmit, formState: { errors, isSubmitting }, setValue } = useForm<AddressInput>({ resolver: zodResolver(AddressSchema) })
   const [selectedShipping, setSelectedShipping] = useState<typeof SHIPPING_OPTIONS[number]>(SHIPPING_OPTIONS[0])
   const [couponCode, setCouponCode] = useState('')
   const [couponState, setCouponState] = useState<{ code: string; discount_cents: number } | null>(null)
   const [isApplyingCoupon, setIsApplyingCoupon] = useState(false)
   const [isProcessingPayment, setIsProcessingPayment] = useState(false)
   const [paymentMethod, setPaymentMethod] = useState<typeof PAYMENT_OPTIONS[number]>(PAYMENT_OPTIONS[0])
+  const { data: savedAddresses = [] } = useQuery({ queryKey: ['saved-addresses'], queryFn: fetchSavedAddresses })
 
   const subtotal = useMemo(() => cart.reduce((sum, r) => sum + ((r.variant?.price_cents ?? 0) * r.quantity), 0), [cart])
   const discountCents = couponState?.discount_cents ?? 0
@@ -88,6 +106,16 @@ export default function CheckoutPage() {
   const total = useMemo(() => Math.max(subtotal - discountCents + shippingCents, 0), [subtotal, discountCents, shippingCents])
   const outOfStockItems = cart.filter((item) => (item.variant?.inventory ?? 0) < item.quantity)
   const canSubmit = !isSubmitting && !isProcessingPayment && cart.length > 0 && outOfStockItems.length === 0
+
+  const fillSavedAddress = (address: SavedAddress) => {
+    setValue('name', address.name)
+    setValue('phone', address.phone)
+    setValue('line1', address.line1)
+    setValue('line2', address.line2 ?? '')
+    setValue('city', address.city)
+    setValue('state', address.state)
+    setValue('pincode', address.pincode)
+  }
 
   const handleApplyCoupon = async () => {
     const trimmed = couponCode.trim()
@@ -292,6 +320,30 @@ export default function CheckoutPage() {
         {isLoading ? <div className="text-neutral-500">Loading cart...</div> : cart.length === 0 ? <div className="text-neutral-500">Your cart is empty.</div> : (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <form onSubmit={handleSubmit(onSubmit)} className="lg:col-span-2 space-y-4">
+              {savedAddresses.length > 0 && (
+                <div className="border rounded-lg p-3 bg-white space-y-2">
+                  <div className="flex items-center justify-between text-sm text-neutral-700">
+                    <span>Saved addresses</span>
+                    <Button type="button" variant="ghost" size="sm" onClick={() => {
+                      const defaultAddress = savedAddresses.find((addr) => addr.is_default) ?? savedAddresses[0]
+                      if (defaultAddress) fillSavedAddress(defaultAddress)
+                    }}>Use default</Button>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {savedAddresses.map((addr) => (
+                      <Button
+                        key={addr.id}
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => fillSavedAddress(addr)}
+                      >
+                        {addr.name} • {addr.city}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+              )}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <input placeholder="Full name" className="input" {...register('name')} />
                 <input placeholder="Phone" className="input" {...register('phone')} />
