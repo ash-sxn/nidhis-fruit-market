@@ -1,6 +1,6 @@
-import '../_lib/env.ts'
+import '../_lib/env.js'
 import type { VercelRequest, VercelResponse } from '@vercel/node'
-import { authenticateUser, supabaseAdmin } from '../_lib/auth'
+import { authenticateUser, supabaseAdmin } from '../_lib/auth.js'
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {

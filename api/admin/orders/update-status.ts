@@ -1,6 +1,6 @@
-import '../../_lib/env.ts'
+import '../../_lib/env.js'
 import type { VercelRequest, VercelResponse } from '@vercel/node'
-import { authenticateAdmin, supabaseAdmin } from '../../_lib/auth'
+import { authenticateAdmin, supabaseAdmin } from '../../_lib/auth.js'
 
 const ALLOWED_STATUSES = new Set(['paid', 'fulfilled', 'cancelled'])
 

@@ -1,6 +1,6 @@
-import './env.ts'
+import './env.js'
 import { Resend } from 'resend'
-import { supabaseAdmin } from './auth'
+import { supabaseAdmin } from './auth.js'
 
 const RESEND_API_KEY = process.env.RESEND_API_KEY
 const ORDER_FROM_EMAIL = process.env.ORDER_FROM_EMAIL

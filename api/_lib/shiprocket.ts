@@ -1,4 +1,4 @@
-import './env.ts'
+import './env.js'
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 
 const SHIPROCKET_EMAIL = process.env.SHIPROCKET_EMAIL

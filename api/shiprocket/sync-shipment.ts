@@ -1,7 +1,7 @@
-import '../_lib/env.ts'
+import '../_lib/env.js'
 import type { VercelRequest, VercelResponse } from '@vercel/node'
-import { authenticateAdmin } from '../_lib/auth'
-import { isShiprocketConfigured, syncShiprocketStatus } from '../_lib/shiprocket'
+import { authenticateAdmin } from '../_lib/auth.js'
+import { isShiprocketConfigured, syncShiprocketStatus } from '../_lib/shiprocket.js'
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {

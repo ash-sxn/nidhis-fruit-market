@@ -1,4 +1,4 @@
-import './env.ts'
+import './env.js'
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { createClient, type User } from '@supabase/supabase-js'
 
