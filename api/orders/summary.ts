@@ -29,7 +29,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const { data: order, error } = await supabase
     .from('orders')
     .select(`id,order_number,status,payment_method,total_cents,subtotal_cents,discount_cents,shipping_cents,shipping_option,currency,address_snapshot,created_at,shipping_tracking_url,shipping_provider,shipping_awb,shipping_label_url,shipping_status,coupon_snapshot,user_id,
-      order_items:order_items(id,product_id,name_snapshot,price_cents_snapshot,quantity,variant_label,variant_grams,product:products(id,image_url))`)
+      order_items:order_items(id,product_id,name_snapshot,price_cents_snapshot,quantity,variant_label,variant_grams,product:products(id,image_url,slug))`)
     .eq('id', orderId)
     .maybeSingle()
 

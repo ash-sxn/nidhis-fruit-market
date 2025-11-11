@@ -1,11 +1,10 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import ImageWithFallback from "@/components/ImageWithFallback";
 import { useQuery } from "@tanstack/react-query";
-import { formatInrFromCents } from "@/lib/utils";
 import { Trash2 } from "lucide-react";
 import { toast } from "@/components/ui/use-toast";
 import { useNavigate } from "react-router-dom";
@@ -30,33 +29,8 @@ const emptyAddress = {
   is_default: false
 };
 
-const ORDER_PAGE_SIZE = 10;
-
 type AddressRecord = Database['public']['Tables']['addresses']['Row'];
 type ProfileLink = Database['public']['Tables']['profile_links']['Row'];
-
-type AccountOrderItem = {
-  name_snapshot: string;
-  quantity: number;
-  price_cents_snapshot: number;
-  variant_label: string | null;
-  variant_grams: number | null;
-};
-
-type AccountOrder = {
-  id: string;
-  order_number?: string;
-  status: string;
-  created_at: string;
-  total_cents: number;
-  shipping_cents: number | null;
-  discount_cents: number | null;
-  subtotal_cents: number | null;
-  coupon_snapshot: { code?: string } | null;
-  shipping_tracking_url: string | null;
-  payment_method: string | null;
-  order_items: AccountOrderItem[];
-};
 
 const AccountPage: React.FC = () => {
   const navigate = useNavigate();
@@ -74,8 +48,6 @@ const AccountPage: React.FC = () => {
   const [linkForm, setLinkForm] = useState({ label: "", url: "" });
   const [linkSaving, setLinkSaving] = useState(false);
 
-  const [orderPage, setOrderPage] = useState(1);
-
   const [mfaFactorId, setMfaFactorId] = useState<string | null>(null);
   const [pendingMfaFactorId, setPendingMfaFactorId] = useState<string | null>(null);
   const [mfaOtp, setMfaOtp] = useState("");
@@ -83,21 +55,6 @@ const AccountPage: React.FC = () => {
   const [mfaLoading, setMfaLoading] = useState(false);
 
   const [deletingAccount, setDeletingAccount] = useState(false);
-
-  const { data: orders = [], isLoading: ordersLoading } = useQuery<AccountOrder[]>({
-    queryKey: ['account-orders', userId],
-    enabled: !!userId,
-    queryFn: async (): Promise<AccountOrder[]> => {
-      if (!userId) return [];
-      const { data, error } = await supabase
-        .from('orders')
-        .select('id,order_number,status,total_cents,subtotal_cents,discount_cents,shipping_cents,coupon_snapshot,created_at,shipping_tracking_url,payment_method,order_items(name_snapshot,quantity,price_cents_snapshot,variant_label,variant_grams)')
-        .eq('user_id', userId)
-        .order('created_at', { ascending: false });
-      if (error) throw error;
-      return (data ?? []) as AccountOrder[];
-    }
-  });
 
   const { data: addresses = [], isLoading: addressesLoading, refetch: refetchAddresses } = useQuery<AddressRecord[]>({
     queryKey: ['account-addresses', userId],
@@ -333,31 +290,6 @@ const AccountPage: React.FC = () => {
     toast({ title: 'Two-factor disabled' });
   };
 
-  const handleDownloadInvoice = async (orderId: string) => {
-    const { data: session } = await supabase.auth.getSession();
-    const token = session.session?.access_token;
-    if (!token) {
-      toast({ title: 'Please log in to download invoices', variant: 'destructive' });
-      return;
-    }
-    const resp = await fetch(`/api/orders/invoice?orderId=${orderId}`, {
-      headers: { Authorization: `Bearer ${token}` }
-    });
-    if (!resp.ok) {
-      toast({ title: 'Unable to download invoice', variant: 'destructive' });
-      return;
-    }
-    const blob = await resp.blob();
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `Invoice-${orderId}.html`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-  };
-
   const handleDeleteAccount = async () => {
     if (!window.confirm('Delete your account and all related data? This cannot be undone.')) return;
     setDeletingAccount(true);
@@ -379,25 +311,24 @@ const AccountPage: React.FC = () => {
     window.location.href = '/';
   };
 
-  useEffect(() => {
-    if (orders.length === 0) {
-      setOrderPage(1);
-    } else {
-      const maxPage = Math.max(1, Math.ceil(orders.length / ORDER_PAGE_SIZE));
-      if (orderPage > maxPage) setOrderPage(maxPage);
-    }
-  }, [orders, orderPage]);
-
-  const pagedOrders = useMemo(() => {
-    const start = (orderPage - 1) * ORDER_PAGE_SIZE;
-    return orders.slice(start, start + ORDER_PAGE_SIZE);
-  }, [orders, orderPage]);
-
-  const totalOrderPages = Math.max(1, Math.ceil(orders.length / ORDER_PAGE_SIZE));
-
   return (
     <div className="max-w-4xl mx-auto py-8 px-4 space-y-6">
       <h1 className="text-3xl font-bold mb-5 font-playfair text-saffron">Account Settings</h1>
+      <section className="p-5 border rounded-md bg-white shadow space-y-4">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div>
+            <p className="text-sm text-neutral-500 uppercase tracking-wide">Orders & Tracking</p>
+            <h2 className="text-2xl font-semibold text-neutral-900 mt-1">Manage your purchases</h2>
+            <p className="text-neutral-600 mt-1 max-w-2xl">
+              Track deliveries, download invoices, request cancellations, and monitor COD shipments from the dedicated orders hub.
+            </p>
+          </div>
+          <Button className="self-start md:self-auto" onClick={() => navigate('/orders')}>
+            Go to orders
+          </Button>
+        </div>
+      </section>
+
       <section className="p-5 border rounded-md bg-white shadow space-y-4">
         <h2 className="text-xl font-semibold">Profile Information</h2>
         <div className="flex items-center gap-4 flex-wrap">
@@ -545,86 +476,6 @@ const AccountPage: React.FC = () => {
             ))
           )}
         </div>
-      </section>
-
-      <section className="p-5 border rounded-md bg-white shadow space-y-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-xl font-semibold">Order History</h2>
-          <span className="text-sm text-neutral-500">{orders.length} order{orders.length === 1 ? '' : 's'}</span>
-        </div>
-        {ordersLoading ? (
-          <div className="text-neutral-500 text-sm">Loading your orders…</div>
-        ) : orders.length === 0 ? (
-          <div className="text-neutral-500 text-sm">No orders yet. Browse the store and place your first order!</div>
-        ) : (
-          <>
-            <ul className="space-y-4">
-              {pagedOrders.map((order) => {
-                const placedAt = new Date(order.created_at).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })
-                const subtotal = order.subtotal_cents ?? order.total_cents
-                const discount = order.discount_cents ?? 0
-                const shipping = order.shipping_cents ?? 0
-                return (
-                  <li key={order.id} className="border rounded-lg p-4 bg-neutral-50">
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <div>
-                        <div className="font-semibold text-neutral-800">Order {order.order_number ?? order.id}</div>
-                        <div className="text-xs text-neutral-500">Placed {placedAt}</div>
-                      </div>
-                      <div className="text-right">
-                        <div className="text-xs text-neutral-500">Status</div>
-                        <div className="text-sm font-semibold text-neutral-700 capitalize">{order.status}</div>
-                      </div>
-                    </div>
-                    <div className="mt-3 text-sm text-neutral-600 space-y-1">
-                      <div>Subtotal: {formatInrFromCents(subtotal)}</div>
-                      {discount > 0 && <div>Discount: -{formatInrFromCents(discount)} {order.coupon_snapshot?.code ? `(${order.coupon_snapshot.code})` : ''}</div>}
-                      <div>Shipping: {formatInrFromCents(shipping)}</div>
-                      <div>Payment: {order.payment_method === 'cod' ? 'Cash on Delivery' : 'Online (Razorpay)'}</div>
-                      <div className="font-semibold text-neutral-800">Total due: {formatInrFromCents(order.total_cents)}</div>
-                    </div>
-                    <div className="mt-3">
-                      <h3 className="text-xs font-semibold text-neutral-500 uppercase mb-1">Items</h3>
-                      <ul className="space-y-1 text-sm text-neutral-700">
-                        {order.order_items?.map((item, idx) => {
-                          const label = item.variant_label ? `${item.name_snapshot} (${item.variant_label})` : item.name_snapshot
-                          return (
-                            <li key={`${item.name_snapshot}-${idx}`} className="flex justify-between">
-                              <span>{label} × {item.quantity}</span>
-                              <span>{formatInrFromCents((item.price_cents_snapshot ?? 0) * (item.quantity ?? 0))}</span>
-                            </li>
-                          )
-                        })}
-                      </ul>
-                    </div>
-                    <div className="flex flex-wrap gap-2 mt-3 text-sm">
-                      <Button type="button" variant="outline" size="sm" onClick={() => navigate(`/order/${order.id}/confirmation`)}>
-                        View details
-                      </Button>
-                      <Button type="button" variant="outline" size="sm" onClick={() => handleDownloadInvoice(order.id)}>
-                        Download invoice
-                      </Button>
-                      {order.shipping_tracking_url && (
-                        <Button type="button" variant="outline" size="sm" asChild>
-                          <a href={order.shipping_tracking_url} target="_blank" rel="noreferrer">Track shipment</a>
-                        </Button>
-                      )}
-                    </div>
-                  </li>
-                )
-              })}
-            </ul>
-            {totalOrderPages > 1 && (
-              <div className="flex items-center justify-between text-sm mt-4">
-                <span>Page {orderPage} of {totalOrderPages}</span>
-                <div className="flex gap-2">
-                  <Button type="button" variant="outline" size="sm" disabled={orderPage === 1} onClick={() => setOrderPage((p) => Math.max(1, p - 1))}>Previous</Button>
-                  <Button type="button" variant="outline" size="sm" disabled={orderPage === totalOrderPages} onClick={() => setOrderPage((p) => Math.min(totalOrderPages, p + 1))}>Next</Button>
-                </div>
-              </div>
-            )}
-          </>
-        )}
       </section>
 
       <section className="p-5 border rounded-md bg-white shadow space-y-3">
