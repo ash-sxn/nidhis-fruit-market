@@ -3,9 +3,35 @@ import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import { sendOrderConfirmationEmail } from '../_lib/email.js'
 import { createShiprocketShipment, isShiprocketConfigured } from '../_lib/shiprocket.js'
+import type { Database } from '../../src/integrations/supabase/types'
 
 type Json = Record<string, unknown>
 type AuthedClient = SupabaseClient<any, 'public', any>
+
+type DbOrder = Database['public']['Tables']['orders']['Row']
+type DbOrderItem = Database['public']['Tables']['order_items']['Row'] & {
+  product?: { image_url?: string | null; slug?: string | null } | null
+}
+type SummaryOrder = DbOrder & { order_items: DbOrderItem[] }
+
+type InvoiceOrder = {
+  id: string
+  order_number?: string | null
+  created_at: string
+  currency?: string | null
+  subtotal_cents?: number | null
+  total_cents: number
+  discount_cents?: number | null
+  shipping_cents?: number | null
+  address_snapshot?: Json
+  user_id: string
+  order_items?: {
+    name_snapshot: string
+    variant_label?: string | null
+    price_cents_snapshot: number
+    quantity?: number | null
+  }[]
+}
 
 type ActionHandler = (ctx: {
   req: VercelRequest
@@ -42,7 +68,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const { data: authUser, error: authError } = await supabase.auth.getUser(token)
   if (authError || !authUser?.user) return res.status(401).json({ error: 'Invalid auth token' })
 
-  return actionHandler({ req, res, supabase, userId: authUser.user.id })
+  await actionHandler({ req, res, supabase, userId: authUser.user.id })
 }
 
 function createServiceClient(): AuthedClient | null {
@@ -67,19 +93,32 @@ async function handleSummary({ req, res, supabase, userId }: { req: VercelReques
   }
 
   const orderId = typeof req.query.orderId === 'string' ? req.query.orderId : undefined
-  if (!orderId) return res.status(400).json({ error: 'orderId required' })
+  if (!orderId) {
+    res.status(400).json({ error: 'orderId required' })
+    return
+  }
 
-  const { data: order, error } = await supabase
+  const { data, error } = await supabase
     .from('orders')
     .select(ORDER_SELECT)
     .eq('id', orderId)
     .maybeSingle()
 
-  if (error) return res.status(500).json({ error: 'Failed to load order' })
-  if (!order) return res.status(404).json({ error: 'Order not found' })
-  if (order.user_id !== userId) return res.status(403).json({ error: 'Forbidden' })
+  if (error) {
+    res.status(500).json({ error: 'Failed to load order' })
+    return
+  }
+  const order = data as SummaryOrder | null
+  if (!order) {
+    res.status(404).json({ error: 'Order not found' })
+    return
+  }
+  if (order.user_id !== userId) {
+    res.status(403).json({ error: 'Forbidden' })
+    return
+  }
 
-  return res.status(200).json({ order })
+  res.status(200).json({ order })
 }
 
 async function handleInvoice({ req, res, supabase, userId }: { req: VercelRequest; res: VercelResponse; supabase: AuthedClient; userId: string }) {
@@ -89,22 +128,35 @@ async function handleInvoice({ req, res, supabase, userId }: { req: VercelReques
   }
 
   const orderId = typeof req.query.orderId === 'string' ? req.query.orderId : undefined
-  if (!orderId) return res.status(400).json({ error: 'orderId required' })
+  if (!orderId) {
+    res.status(400).json({ error: 'orderId required' })
+    return
+  }
 
-  const { data: order, error } = await supabase
+  const { data, error } = await supabase
     .from('orders')
     .select('id,order_number,status,currency,total_cents,subtotal_cents,discount_cents,shipping_cents,address_snapshot,created_at,user_id,order_items(name_snapshot,quantity,price_cents_snapshot,variant_label)')
     .eq('id', orderId)
     .maybeSingle()
 
-  if (error) return res.status(500).json({ error: 'Failed to load order' })
-  if (!order) return res.status(404).json({ error: 'Order not found' })
-  if (order.user_id !== userId) return res.status(403).json({ error: 'Forbidden' })
+  if (error) {
+    res.status(500).json({ error: 'Failed to load order' })
+    return
+  }
+  const order = data as InvoiceOrder | null
+  if (!order) {
+    res.status(404).json({ error: 'Order not found' })
+    return
+  }
+  if (order.user_id !== userId) {
+    res.status(403).json({ error: 'Forbidden' })
+    return
+  }
 
-  const html = renderInvoice(order as Json)
+  const html = renderInvoice(order)
   res.setHeader('Content-Type', 'text/html; charset=utf-8')
   res.setHeader('Content-Disposition', `attachment; filename=Invoice-${order.order_number ?? order.id}.html`)
-  return res.status(200).send(html)
+  res.status(200).send(html)
 }
 
 async function handleConfirmCod({ req, res, supabase, userId }: { req: VercelRequest; res: VercelResponse; supabase: AuthedClient; userId: string }) {
@@ -114,9 +166,12 @@ async function handleConfirmCod({ req, res, supabase, userId }: { req: VercelReq
   }
 
   const { orderId } = (req.body || {}) as { orderId?: string }
-  if (!orderId) return res.status(400).json({ error: 'orderId required' })
+  if (!orderId) {
+    res.status(400).json({ error: 'orderId required' })
+    return
+  }
 
-  const { data: order, error } = await supabase
+  const { data, error } = await supabase
     .from('orders')
     .update({ status: 'paid', payment_ref: 'cod-cash' })
     .eq('id', orderId)
@@ -126,8 +181,15 @@ async function handleConfirmCod({ req, res, supabase, userId }: { req: VercelReq
     .select('id,coupon_id,email_sent_at')
     .maybeSingle()
 
-  if (error) return res.status(500).json({ error: 'Failed to update order' })
-  if (!order) return res.status(409).json({ error: 'Order already processed' })
+  if (error) {
+    res.status(500).json({ error: 'Failed to update order' })
+    return
+  }
+  if (!data) {
+    res.status(409).json({ error: 'Order already processed' })
+    return
+  }
+  const order = data as { id: string; coupon_id: string | null; email_sent_at: string | null }
 
   if (order.coupon_id) {
     try {
@@ -164,7 +226,7 @@ async function handleConfirmCod({ req, res, supabase, userId }: { req: VercelReq
     }
   }
 
-  return res.status(200).json({ ok: true })
+  res.status(200).json({ ok: true })
 }
 
 async function handleCancel({ req, res, supabase, userId }: { req: VercelRequest; res: VercelResponse; supabase: AuthedClient; userId: string }) {
@@ -174,7 +236,10 @@ async function handleCancel({ req, res, supabase, userId }: { req: VercelRequest
   }
 
   const { orderId } = (req.body || {}) as { orderId?: string }
-  if (!orderId) return res.status(400).json({ error: 'orderId required' })
+  if (!orderId) {
+    res.status(400).json({ error: 'orderId required' })
+    return
+  }
 
   const { data, error } = await supabase
     .from('orders')
@@ -185,8 +250,14 @@ async function handleCancel({ req, res, supabase, userId }: { req: VercelRequest
     .select('id')
     .maybeSingle()
 
-  if (error) return res.status(500).json({ error: 'Failed to cancel order' })
-  if (!data) return res.status(409).json({ error: 'Order not cancellable' })
+  if (error) {
+    res.status(500).json({ error: 'Failed to cancel order' })
+    return
+  }
+  if (!data) {
+    res.status(409).json({ error: 'Order not cancellable' })
+    return
+  }
 
   try {
     await supabase.rpc('restock_order_inventory', { p_order_id: orderId })
@@ -194,29 +265,24 @@ async function handleCancel({ req, res, supabase, userId }: { req: VercelRequest
     console.error('Failed to restock inventory', err)
   }
 
-  return res.status(200).json({ ok: true })
+  res.status(200).json({ ok: true })
 }
 
-function formatCurrency(value: number, currency = 'INR') {
+function formatCurrency(value: number | null | undefined, currency = 'INR') {
   return new Intl.NumberFormat('en-IN', { style: 'currency', currency }).format((value ?? 0) / 100)
 }
 
-function renderInvoice(order: Json) {
+function renderInvoice(order: InvoiceOrder) {
   const address = (order.address_snapshot ?? {}) as Record<string, string | undefined>
-  const items = (order.order_items ?? []) as {
-    name_snapshot: string
-    variant_label?: string | null
-    price_cents_snapshot: number
-    quantity?: number | null
-  }[]
+  const items = order.order_items ?? []
   const rows = items
     .map(
       (item) => `
       <tr>
         <td>${item.name_snapshot}${item.variant_label ? ` (${item.variant_label})` : ''}</td>
         <td style="text-align:center;">${item.quantity ?? 0}</td>
-        <td style="text-align:right;">${formatCurrency(item.price_cents_snapshot, order.currency as string | undefined)}</td>
-        <td style="text-align:right;">${formatCurrency((item.price_cents_snapshot ?? 0) * (item.quantity ?? 0), order.currency as string | undefined)}</td>
+        <td style="text-align:right;">${formatCurrency(item.price_cents_snapshot, order.currency ?? 'INR')}</td>
+        <td style="text-align:right;">${formatCurrency((item.price_cents_snapshot ?? 0) * (item.quantity ?? 0), order.currency ?? 'INR')}</td>
       </tr>
     `
     )
@@ -258,10 +324,10 @@ function renderInvoice(order: Json) {
         <tbody>${rows || '<tr><td colspan="4" style="text-align:center;">No items</td></tr>'}</tbody>
       </table>
       <div style="margin-top:16px;font-size:14px;">
-        <div>Subtotal: <strong>${formatCurrency((order.subtotal_cents as number) ?? (order.total_cents as number), order.currency as string | undefined)}</strong></div>
-        ${order.discount_cents ? `<div>Discount: <strong>- ${formatCurrency(order.discount_cents as number, order.currency as string | undefined)}</strong></div>` : ''}
-        <div>Shipping: <strong>${formatCurrency((order.shipping_cents as number) ?? 0, order.currency as string | undefined)}</strong></div>
-        <div style="font-size:16px;margin-top:8px;">Total: <strong>${formatCurrency(order.total_cents as number, order.currency as string | undefined)}</strong></div>
+        <div>Subtotal: <strong>${formatCurrency(order.subtotal_cents ?? order.total_cents, order.currency ?? 'INR')}</strong></div>
+        ${order.discount_cents ? `<div>Discount: <strong>- ${formatCurrency(order.discount_cents, order.currency ?? 'INR')}</strong></div>` : ''}
+        <div>Shipping: <strong>${formatCurrency(order.shipping_cents ?? 0, order.currency ?? 'INR')}</strong></div>
+        <div style="font-size:16px;margin-top:8px;">Total: <strong>${formatCurrency(order.total_cents, order.currency ?? 'INR')}</strong></div>
       </div>
     </body>
   </html>`
