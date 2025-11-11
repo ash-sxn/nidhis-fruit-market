@@ -102,13 +102,13 @@ async function handleSummary({ req, res, supabase, userId }: { req: VercelReques
     .from('orders')
     .select(ORDER_SELECT)
     .eq('id', orderId)
-    .maybeSingle()
+    .maybeSingle<SummaryOrder>()
 
   if (error) {
     res.status(500).json({ error: 'Failed to load order' })
     return
   }
-  const order = data as SummaryOrder | null
+  const order = data ?? null
   if (!order) {
     res.status(404).json({ error: 'Order not found' })
     return
@@ -137,13 +137,13 @@ async function handleInvoice({ req, res, supabase, userId }: { req: VercelReques
     .from('orders')
     .select('id,order_number,status,currency,total_cents,subtotal_cents,discount_cents,shipping_cents,address_snapshot,created_at,user_id,order_items(name_snapshot,quantity,price_cents_snapshot,variant_label)')
     .eq('id', orderId)
-    .maybeSingle()
+    .maybeSingle<InvoiceOrder>()
 
   if (error) {
     res.status(500).json({ error: 'Failed to load order' })
     return
   }
-  const order = data as InvoiceOrder | null
+  const order = data ?? null
   if (!order) {
     res.status(404).json({ error: 'Order not found' })
     return
