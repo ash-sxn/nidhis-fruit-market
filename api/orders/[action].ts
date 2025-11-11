@@ -3,7 +3,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import { sendOrderConfirmationEmail } from '../_lib/email.js'
 import { createShiprocketShipment, isShiprocketConfigured } from '../_lib/shiprocket.js'
-import type { Database } from '../../src/integrations/supabase/types'
+import type { Database } from '../../src/integrations/supabase/types.ts'
 
 type Json = Record<string, unknown>
 type AuthedClient = SupabaseClient<any, 'public', any>
@@ -38,7 +38,7 @@ type ActionHandler = (ctx: {
   res: VercelResponse
   supabase: AuthedClient
   userId: string
-}) => Promise<void>
+}) => Promise<void | VercelResponse>
 
 const ORDER_SELECT =
   `id,order_number,status,payment_method,total_cents,subtotal_cents,discount_cents,shipping_cents,shipping_option,currency,address_snapshot,created_at,shipping_tracking_url,shipping_provider,shipping_awb,shipping_label_url,shipping_status,coupon_snapshot,user_id,` +
