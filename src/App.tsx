@@ -18,6 +18,7 @@ import AuthPage from "./pages/AuthPage";
 import React, { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import BlogPage from "./pages/BlogPage";
+import BlogDetailPage from "./pages/BlogDetailPage";
 import Cart from "./components/Cart";
 import Wishlist from "./components/Wishlist";
 import AccountPage from "./pages/AccountPage";
@@ -31,6 +32,7 @@ import AdminProductsPage from "./pages/admin/AdminProductsPage";
 import AdminOrdersPage from "./pages/admin/AdminOrdersPage";
 import AdminMfaPage from "./pages/admin/AdminMfaPage";
 import AdminUsersPage from "./pages/admin/AdminUsersPage";
+import AdminBlogPage from "./pages/admin/AdminBlogPage";
 import ProductsPage from "./pages/ProductsPage";
 import { useAdminAccess } from "@/hooks/useAdminAccess";
 
@@ -108,6 +110,7 @@ const App = () => (
           <Route path="/category/super-food" element={<SuperFoodPage />} />
           <Route path="/products" element={<ProductsPage />} />
           <Route path="/blog" element={<BlogPage />} />
+          <Route path="/blog/:slug" element={<BlogDetailPage />} />
           <Route path="/cart" element={<Cart />} />
           <Route path="/wishlist" element={<Wishlist />} />
           <Route path="/account" element={<RequireAuth><AccountPage /></RequireAuth>} />
@@ -121,6 +124,7 @@ const App = () => (
               <Route index element={<AdminDashboard />} />
               <Route path="products" element={<AdminProductsPage />} />
               <Route path="orders" element={<AdminOrdersPage />} />
+              <Route path="blog" element={<AdminBlogPage />} />
               <Route path="team" element={<AdminUsersPage />} />
             </Route>
           </Route>
