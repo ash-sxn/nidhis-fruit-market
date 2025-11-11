@@ -95,6 +95,8 @@ const OrderConfirmationPage: React.FC = () => {
   const address = order?.address_snapshot ?? {}
   const recommended = (order?.order_items ?? []).slice(0, 3)
   const deliveryEta = order?.shipping_option === "express" ? "Estimated delivery in 1-2 days" : "Estimated delivery in 3-5 days"
+  const hasShipment = Boolean(order?.shipping_awb)
+  const hasTrackingLink = Boolean(order?.shipping_tracking_url)
 
   return (
     <div className="flex flex-col min-h-screen bg-neutral-50">
@@ -185,18 +187,35 @@ const OrderConfirmationPage: React.FC = () => {
                           Method: <strong>{order.payment_method === "cod" ? "Cash on Delivery" : "Online (Razorpay)"}</strong>
                         </p>
                         <p>
-                          Courier: <strong>{order.shipping_provider ?? "Assigning courier"}</strong>
+                          Courier: <strong>{order.shipping_provider ?? (hasShipment ? "Shiprocket" : "Assigning courier")}</strong>
                         </p>
                         <p>
                           Option: <strong>{order.shipping_option === "express" ? "Express (1-2 days)" : "Standard (3-5 days)"}</strong>
                         </p>
-                        {order.shipping_tracking_url ? (
-                          <Button variant="link" className="p-0 h-auto text-saffron" onClick={handleTrack}>
-                            Track shipment
+                        {hasShipment && (
+                          <p className="text-xs text-neutral-500">
+                            AWB <strong>{order.shipping_awb}</strong>
+                            {order.shipping_provider ? ` • ${order.shipping_provider}` : ""}
+                          </p>
+                        )}
+                        {order.shipping_label_url && (
+                          <Button variant="link" className="p-0 h-auto text-neutral-500" asChild>
+                            <a href={order.shipping_label_url} target="_blank" rel="noreferrer">
+                              Download label
+                            </a>
                           </Button>
+                        )}
+                        {hasTrackingLink ? (
+                          <div className="flex flex-wrap gap-2 pt-1">
+                            <Button variant="link" className="p-0 h-auto text-saffron" onClick={handleTrack}>
+                              Track shipment
+                            </Button>
+                          </div>
                         ) : (
                           <p className="text-xs text-neutral-400">
-                            Tracking link will appear once the courier scans your parcel.
+                            {hasShipment
+                              ? "Manifested with our courier partner. Tracking updates appear after the first scan."
+                              : "We’ll share tracking details as soon as the courier picks up your parcel."}
                           </p>
                         )}
                       </div>

@@ -1,4 +1,4 @@
-import React, { useMemo } from "react"
+import React, { useMemo, useState } from "react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { supabase } from "@/integrations/supabase/client"
 import { formatInrFromCents } from "@/lib/utils"
@@ -50,6 +50,9 @@ async function fetchOrders(): Promise<OrderRow[]> {
 
 export default function AdminOrdersPage() {
   const queryClient = useQueryClient()
+  const [manifestingId, setManifestingId] = useState<string | null>(null)
+  const [syncingId, setSyncingId] = useState<string | null>(null)
+  const [statusUpdatingId, setStatusUpdatingId] = useState<string | null>(null)
   const { data: orders = [], isLoading, error, isFetching, refetch } = useQuery({
     queryKey: ['admin-orders'],
     queryFn: fetchOrders
@@ -72,12 +75,18 @@ export default function AdminOrdersPage() {
       if (!resp.ok) throw new Error(payload.error ?? 'Failed to create shipment')
       return payload
     },
+    onMutate: (orderId) => {
+      setManifestingId(orderId)
+    },
     onSuccess: () => {
       toast({ title: 'Shipment created' })
       queryClient.invalidateQueries({ queryKey: ['admin-orders'] })
     },
     onError: (err: any) => {
       toast({ title: 'Shiprocket error', description: err.message ?? 'Try again later', variant: 'destructive' })
+    },
+    onSettled: () => {
+      setManifestingId(null)
     }
   })
 
@@ -98,12 +107,18 @@ export default function AdminOrdersPage() {
       if (!resp.ok) throw new Error(payload.error ?? 'Failed to sync tracking')
       return payload
     },
+    onMutate: (orderId) => {
+      setSyncingId(orderId)
+    },
     onSuccess: () => {
       toast({ title: 'Tracking refreshed' })
       queryClient.invalidateQueries({ queryKey: ['admin-orders'] })
     },
     onError: (err: any) => {
       toast({ title: 'Sync failed', description: err.message ?? 'Try again later', variant: 'destructive' })
+    },
+    onSettled: () => {
+      setSyncingId(null)
     }
   })
 
@@ -124,12 +139,18 @@ export default function AdminOrdersPage() {
       if (!resp.ok) throw new Error(payload.error ?? 'Failed to update order')
       return payload
     },
+    onMutate: ({ orderId }) => {
+      setStatusUpdatingId(orderId)
+    },
     onSuccess: () => {
       toast({ title: 'Order updated' })
       queryClient.invalidateQueries({ queryKey: ['admin-orders'] })
     },
     onError: (err: any) => {
       toast({ title: 'Update failed', description: err.message ?? 'Try again later', variant: 'destructive' })
+    },
+    onSettled: () => {
+      setStatusUpdatingId(null)
     }
   })
 
@@ -241,9 +262,9 @@ export default function AdminOrdersPage() {
                           size="sm"
                           className="bg-emerald-500 hover:bg-emerald-400 text-slate-950"
                           onClick={() => createShipment.mutate(order.id)}
-                          disabled={createShipment.isPending}
+                          disabled={manifestingId === order.id}
                         >
-                          {createShipment.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <PackageCheck className="mr-2 h-4 w-4" />}Manifest
+                          {manifestingId === order.id ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <PackageCheck className="mr-2 h-4 w-4" />}Manifest
                         </Button>
                       ) : order.shipping_awb ? (
                         <Button
@@ -251,9 +272,9 @@ export default function AdminOrdersPage() {
                           variant="outline"
                           className="border-slate-700 text-slate-200"
                           onClick={() => syncShipment.mutate(order.id)}
-                          disabled={syncShipment.isPending}
+                          disabled={syncingId === order.id}
                         >
-                          {syncShipment.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCcw className="mr-2 h-4 w-4" />}Sync status
+                          {syncingId === order.id ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCcw className="mr-2 h-4 w-4" />}Sync status
                         </Button>
                       ) : (
                         <span className="text-xs text-slate-500">Payment pending</span>
@@ -265,8 +286,9 @@ export default function AdminOrdersPage() {
                             variant="outline"
                             className="border-emerald-500/30 text-emerald-300"
                             onClick={() => statusMutation.mutate({ orderId: order.id, status: 'paid' })}
-                            disabled={statusMutation.isPending}
+                            disabled={statusUpdatingId === order.id}
                           >
+                            {statusUpdatingId === order.id ? <Loader2 className="mr-2 h-4 w-4 animate-spin inline" /> : null}
                             Mark paid (COD)
                           </Button>
                         )}
@@ -276,8 +298,9 @@ export default function AdminOrdersPage() {
                             variant="outline"
                             className="border-emerald-500/30 text-emerald-300"
                             onClick={() => statusMutation.mutate({ orderId: order.id, status: 'fulfilled' })}
-                            disabled={statusMutation.isPending}
+                            disabled={statusUpdatingId === order.id}
                           >
+                            {statusUpdatingId === order.id ? <Loader2 className="mr-2 h-4 w-4 animate-spin inline" /> : null}
                             Mark fulfilled
                           </Button>
                         )}
@@ -287,8 +310,9 @@ export default function AdminOrdersPage() {
                             variant="outline"
                             className="border-rose-500/40 text-rose-300"
                             onClick={() => statusMutation.mutate({ orderId: order.id, status: 'cancelled' })}
-                            disabled={statusMutation.isPending}
+                            disabled={statusUpdatingId === order.id}
                           >
+                            {statusUpdatingId === order.id ? <Loader2 className="mr-2 h-4 w-4 animate-spin inline" /> : null}
                             Cancel order
                           </Button>
                         )}
