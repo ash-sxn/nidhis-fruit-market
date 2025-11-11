@@ -1,6 +1,6 @@
-import './env.ts'
+import './env.js'
 import { Resend } from 'resend'
-import { supabaseAdmin } from './auth'
+import { supabaseAdmin } from './auth.js'
 
 const RESEND_API_KEY = process.env.RESEND_API_KEY
 const ORDER_FROM_EMAIL = process.env.ORDER_FROM_EMAIL
@@ -18,7 +18,7 @@ export async function sendOrderConfirmationEmail(orderId: string) {
 
   const { data: order, error } = await supabaseAdmin
     .from('orders')
-    .select('id,user_id,total_cents,subtotal_cents,discount_cents,shipping_cents,currency,address_snapshot,created_at,coupon_snapshot,shipping_provider,shipping_tracking_url,order_items(name_snapshot,price_cents_snapshot,quantity)')
+    .select('id,user_id,total_cents,subtotal_cents,discount_cents,shipping_cents,currency,address_snapshot,created_at,coupon_snapshot,shipping_provider,shipping_tracking_url,payment_method,order_items(name_snapshot,price_cents_snapshot,quantity)')
     .eq('id', orderId)
     .maybeSingle()
 
@@ -48,6 +48,7 @@ export async function sendOrderConfirmationEmail(orderId: string) {
   const shipping = order.shipping_cents ?? 0
   const subtotal = order.subtotal_cents ?? order.total_cents
   const total = order.total_cents ?? subtotal - discount + shipping
+  const paymentLabel = order.payment_method === 'cod' ? 'Cash on Delivery' : 'Online'
 
   const address = order.address_snapshot || {}
 
@@ -73,6 +74,7 @@ export async function sendOrderConfirmationEmail(orderId: string) {
         <div>Subtotal: <strong>${currencyFormatter.format(subtotal / 100)}</strong></div>
         ${discount > 0 ? `<div>Discount: <strong>- ${currencyFormatter.format(discount / 100)}</strong></div>` : ''}
         <div>Shipping: <strong>${currencyFormatter.format(shipping / 100)}</strong></div>
+        <div>Payment method: <strong>${paymentLabel}</strong></div>
         <div style="margin-top:8px;font-size:16px;">Total paid: <strong>${currencyFormatter.format(total / 100)}</strong></div>
       </div>
       <div style="margin-top:24px;font-size:14px;">

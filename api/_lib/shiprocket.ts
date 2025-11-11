@@ -1,4 +1,4 @@
-import './env.ts'
+import './env.js'
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 
 const SHIPROCKET_EMAIL = process.env.SHIPROCKET_EMAIL
@@ -25,6 +25,7 @@ type OrderRecord = {
   status: string
   total_cents: number
   currency: string
+  payment_method: string | null
   address_snapshot: any
   created_at: string
   shipping_awb: string | null
@@ -68,7 +69,7 @@ async function getShiprocketToken(): Promise<string> {
 async function fetchOrder(orderId: string): Promise<OrderRecord> {
   const { data, error } = await supabaseAdmin
     .from('orders')
-    .select('id,user_id,status,total_cents,currency,address_snapshot,created_at,shipping_awb,shipping_status,shipping_provider,shipping_tracking_url,order_items(order_id,product_id,name_snapshot,price_cents_snapshot,quantity)')
+    .select('id,user_id,status,total_cents,currency,payment_method,address_snapshot,created_at,shipping_awb,shipping_status,shipping_provider,shipping_tracking_url,order_items(order_id,product_id,name_snapshot,price_cents_snapshot,quantity)')
     .eq('id', orderId)
     .maybeSingle<OrderRecord>()
 
@@ -98,8 +99,9 @@ export async function createShiprocketShipment(orderId: string) {
   }
 
   const order = await fetchOrder(orderId)
-  if (order.status !== 'paid') {
-    throw new Error('Only paid orders can be manifested with Shiprocket')
+  const isCod = (order.payment_method ?? 'online') === 'cod'
+  if (order.status !== 'paid' && !(isCod && order.status === 'pending')) {
+    throw new Error('Only paid or COD orders can be manifested with Shiprocket')
   }
   if (order.shipping_awb) {
     return {
@@ -140,7 +142,8 @@ export async function createShiprocketShipment(orderId: string) {
     shipping_country: 'India',
     shipping_email: email ?? 'orders@nidhis.in',
     shipping_phone: address.phone ?? '',
-    payment_method: 'Prepaid',
+    payment_method: isCod ? 'COD' : 'Prepaid',
+    cod_amount: isCod ? order.total_cents / 100 : 0,
     sub_total: order.total_cents / 100,
     length: DEFAULT_LENGTH,
     breadth: DEFAULT_BREADTH,

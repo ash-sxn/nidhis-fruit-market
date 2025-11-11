@@ -1,9 +1,9 @@
-import '../_lib/env.ts'
+import '../_lib/env.js'
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import crypto from 'crypto'
 import { createClient } from '@supabase/supabase-js'
-import { sendOrderConfirmationEmail } from '../_lib/email'
-import { createShiprocketShipment, isShiprocketConfigured } from '../_lib/shiprocket'
+import { sendOrderConfirmationEmail } from '../_lib/email.js'
+import { createShiprocketShipment, isShiprocketConfigured } from '../_lib/shiprocket.js'
 
 type VerifyPayload = {
   orderId?: string

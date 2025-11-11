@@ -31,8 +31,10 @@ cd <YOUR_PROJECT_NAME>
 npm i
 
 # Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
+npm run dev -- --host 0.0.0.0 --port 5173
 ```
+
+> **Heads up:** running `vercel dev` directly can proxy the build through a Node bridge, which serves the Vite client bundle with the wrong MIME type (resulting in a blank page). Always use `npm run dev` (or `npm run dev -- --host 0.0.0.0 --port 5173` when testing on another device or tunnel) for local development.
 
 **Edit a file directly in GitHub**
 

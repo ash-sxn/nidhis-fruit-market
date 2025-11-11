@@ -1,6 +1,6 @@
-import '../../_lib/env.ts'
+import '../../_lib/env.js'
 import type { VercelRequest, VercelResponse } from '@vercel/node'
-import { authenticateAdmin, supabaseAdmin } from '../../_lib/auth'
+import { authenticateAdmin, supabaseAdmin } from '../../_lib/auth.js'
 
 const ALLOWED_STATUSES = new Set(['paid', 'fulfilled', 'cancelled'])
 
@@ -23,7 +23,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   const { data: current, error: fetchError } = await supabaseAdmin
     .from('orders')
-    .select('id,status,coupon_id')
+    .select('id,status,coupon_id,payment_method')
     .eq('id', orderId)
     .maybeSingle()
 
@@ -38,7 +38,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     .from('orders')
     .update({ status })
     .eq('id', orderId)
-    .select('id,status,coupon_id,user_id')
+    .select('id,status,coupon_id,user_id,payment_method')
     .maybeSingle()
 
   if (error) return res.status(500).json({ error: error.message })
@@ -61,6 +61,25 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     } catch (err) {
       console.error('Failed to restock inventory after cancellation', err)
+    }
+  }
+
+  const newlyPaid = (status === 'paid' || status === 'fulfilled') && !['paid', 'fulfilled'].includes(current.status)
+  if (newlyPaid && data?.coupon_id && data?.payment_method === 'cod') {
+    try {
+      const { data: couponRow } = await supabaseAdmin
+        .from('coupons')
+        .select('used_count')
+        .eq('id', data.coupon_id)
+        .maybeSingle()
+      if (couponRow) {
+        await supabaseAdmin
+          .from('coupons')
+          .update({ used_count: (couponRow.used_count ?? 0) + 1 })
+          .eq('id', data.coupon_id)
+      }
+    } catch (err) {
+      console.error('Failed to increment coupon usage for COD order', err)
     }
   }
 

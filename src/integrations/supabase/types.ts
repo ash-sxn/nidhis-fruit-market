@@ -9,6 +9,48 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      addresses: {
+        Row: {
+          id: string
+          user_id: string
+          name: string
+          phone: string
+          line1: string
+          line2: string | null
+          city: string
+          state: string
+          pincode: string
+          is_default: boolean
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          name: string
+          phone: string
+          line1: string
+          line2?: string | null
+          city: string
+          state: string
+          pincode: string
+          is_default?: boolean
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          name?: string
+          phone?: string
+          line1?: string
+          line2?: string | null
+          city?: string
+          state?: string
+          pincode?: string
+          is_default?: boolean
+          created_at?: string
+        }
+        Relationships: []
+      }
       products: {
         Row: {
           id: string
@@ -147,6 +189,15 @@ export type Database = {
           currency: string
           address_snapshot: Json
           payment_ref: string | null
+          order_number: string | null
+          subtotal_cents: number | null
+          discount_cents: number | null
+          shipping_cents: number | null
+          shipping_option: string | null
+          coupon_id: string | null
+          coupon_snapshot: Json | null
+          email_sent_at: string | null
+          payment_method: string
           created_at: string
           updated_at: string
           shipping_provider: string | null
@@ -165,6 +216,15 @@ export type Database = {
           currency?: string
           address_snapshot: Json
           payment_ref?: string | null
+          order_number?: string | null
+          subtotal_cents?: number | null
+          discount_cents?: number | null
+          shipping_cents?: number | null
+          shipping_option?: string | null
+          coupon_id?: string | null
+          coupon_snapshot?: Json | null
+          email_sent_at?: string | null
+          payment_method?: string
           created_at?: string
           updated_at?: string
           shipping_provider?: string | null
@@ -183,6 +243,15 @@ export type Database = {
           currency?: string
           address_snapshot?: Json
           payment_ref?: string | null
+          order_number?: string | null
+          subtotal_cents?: number | null
+          discount_cents?: number | null
+          shipping_cents?: number | null
+          shipping_option?: string | null
+          coupon_id?: string | null
+          coupon_snapshot?: Json | null
+          email_sent_at?: string | null
+          payment_method?: string
           created_at?: string
           updated_at?: string
           shipping_provider?: string | null
@@ -301,6 +370,10 @@ export type Database = {
           p_currency: string | null
           p_address: Json | null
           p_items: Json
+          p_shipping_cents?: number | null
+          p_shipping_option?: string | null
+          p_coupon_code?: string | null
+          p_payment_method?: string | null
         }
         Returns: Json
       }
@@ -432,3 +505,27 @@ export const Constants = {
     },
   },
 } as const
+      profile_links: {
+        Row: {
+          id: string
+          user_id: string
+          label: string
+          url: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          label: string
+          url: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          label?: string
+          url?: string
+          created_at?: string
+        }
+        Relationships: []
+      }
