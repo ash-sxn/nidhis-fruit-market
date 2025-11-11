@@ -8,6 +8,7 @@ import { useQuery } from "@tanstack/react-query";
 import { formatInrFromCents } from "@/lib/utils";
 import { Trash2 } from "lucide-react";
 import { toast } from "@/components/ui/use-toast";
+import { useNavigate } from "react-router-dom";
 
 const DEFAULT_AVATARS = [
   "https://api.dicebear.com/7.x/fun-emoji/svg?seed=Cashew",
@@ -44,6 +45,7 @@ type AccountOrderItem = {
 
 type AccountOrder = {
   id: string;
+  order_number?: string;
   status: string;
   created_at: string;
   total_cents: number;
@@ -57,6 +59,7 @@ type AccountOrder = {
 };
 
 const AccountPage: React.FC = () => {
+  const navigate = useNavigate();
   const [userId, setUserId] = useState<string | null>(null);
   const [email, setEmail] = useState<string | null>(null);
   const [username, setUsername] = useState("");
@@ -88,7 +91,7 @@ const AccountPage: React.FC = () => {
       if (!userId) return [];
       const { data, error } = await supabase
         .from('orders')
-        .select('id,status,total_cents,subtotal_cents,discount_cents,shipping_cents,coupon_snapshot,created_at,shipping_tracking_url,payment_method,order_items(name_snapshot,quantity,price_cents_snapshot,variant_label,variant_grams)')
+        .select('id,order_number,status,total_cents,subtotal_cents,discount_cents,shipping_cents,coupon_snapshot,created_at,shipping_tracking_url,payment_method,order_items(name_snapshot,quantity,price_cents_snapshot,variant_label,variant_grams)')
         .eq('user_id', userId)
         .order('created_at', { ascending: false });
       if (error) throw error;
@@ -330,6 +333,31 @@ const AccountPage: React.FC = () => {
     toast({ title: 'Two-factor disabled' });
   };
 
+  const handleDownloadInvoice = async (orderId: string) => {
+    const { data: session } = await supabase.auth.getSession();
+    const token = session.session?.access_token;
+    if (!token) {
+      toast({ title: 'Please log in to download invoices', variant: 'destructive' });
+      return;
+    }
+    const resp = await fetch(`/api/orders/invoice?orderId=${orderId}`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    if (!resp.ok) {
+      toast({ title: 'Unable to download invoice', variant: 'destructive' });
+      return;
+    }
+    const blob = await resp.blob();
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `Invoice-${orderId}.html`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   const handleDeleteAccount = async () => {
     if (!window.confirm('Delete your account and all related data? This cannot be undone.')) return;
     setDeletingAccount(true);
@@ -540,7 +568,7 @@ const AccountPage: React.FC = () => {
                   <li key={order.id} className="border rounded-lg p-4 bg-neutral-50">
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <div>
-                        <div className="font-semibold text-neutral-800">Order {order.id}</div>
+                        <div className="font-semibold text-neutral-800">Order {order.order_number ?? order.id}</div>
                         <div className="text-xs text-neutral-500">Placed {placedAt}</div>
                       </div>
                       <div className="text-right">
@@ -569,11 +597,19 @@ const AccountPage: React.FC = () => {
                         })}
                       </ul>
                     </div>
-                    {order.shipping_tracking_url && (
-                      <div className="mt-3 text-sm">
-                        Track shipment: <a href={order.shipping_tracking_url} className="text-green underline" target="_blank" rel="noreferrer">{order.shipping_tracking_url}</a>
-                      </div>
-                    )}
+                    <div className="flex flex-wrap gap-2 mt-3 text-sm">
+                      <Button type="button" variant="outline" size="sm" onClick={() => navigate(`/order/${order.id}/confirmation`)}>
+                        View details
+                      </Button>
+                      <Button type="button" variant="outline" size="sm" onClick={() => handleDownloadInvoice(order.id)}>
+                        Download invoice
+                      </Button>
+                      {order.shipping_tracking_url && (
+                        <Button type="button" variant="outline" size="sm" asChild>
+                          <a href={order.shipping_tracking_url} target="_blank" rel="noreferrer">Track shipment</a>
+                        </Button>
+                      )}
+                    </div>
                   </li>
                 )
               })}

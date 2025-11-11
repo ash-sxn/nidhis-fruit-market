@@ -23,6 +23,7 @@ import Wishlist from "./components/Wishlist";
 import AccountPage from "./pages/AccountPage";
 import CheckoutPage from "./pages/CheckoutPage";
 import ProductDetailPage from "./pages/ProductDetailPage";
+import OrderConfirmationPage from "./pages/OrderConfirmationPage";
 import AdminLayout from "./pages/admin/AdminLayout";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminProductsPage from "./pages/admin/AdminProductsPage";
@@ -111,6 +112,7 @@ const App = () => (
           <Route path="/account" element={<AccountPage />} />
           <Route path="/checkout" element={<CheckoutPage />} />
           <Route path="/product/:slug" element={<ProductDetailPage />} />
+          <Route path="/order/:orderId/confirmation" element={<OrderConfirmationPage />} />
           <Route path="/admin" element={<AdminGuard />}>
             <Route path="mfa" element={<AdminMfaPage />} />
             <Route element={<AdminLayout />}>

@@ -24,15 +24,34 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   const { data: order, error } = await supabase
     .from('orders')
-    .select('id,user_id,status,payment_method,coupon_id,email_sent_at')
+    .update({ status: 'paid', payment_ref: 'cod-cash' })
     .eq('id', orderId)
+    .eq('user_id', authUser.user.id)
+    .eq('status', 'pending')
+    .eq('payment_method', 'cod')
+    .select('id,coupon_id,email_sent_at')
     .maybeSingle()
 
-  if (error) return res.status(500).json({ error: 'Failed to load order' })
-  if (!order) return res.status(404).json({ error: 'Order not found' })
-  if (order.user_id !== authUser.user.id) return res.status(403).json({ error: 'Forbidden' })
-  if (order.payment_method !== 'cod') return res.status(400).json({ error: 'Order is not COD' })
-  if (order.status !== 'pending') return res.status(400).json({ error: 'Order already processed' })
+  if (error) return res.status(500).json({ error: 'Failed to update order' })
+  if (!order) return res.status(409).json({ error: 'Order already processed' })
+
+  if (order.coupon_id) {
+    try {
+      const { data: couponRow } = await supabase
+        .from('coupons')
+        .select('used_count')
+        .eq('id', order.coupon_id)
+        .maybeSingle()
+      if (couponRow) {
+        await supabase
+          .from('coupons')
+          .update({ used_count: (couponRow.used_count ?? 0) + 1 })
+          .eq('id', order.coupon_id)
+      }
+    } catch (err) {
+      console.error('Failed to increment coupon usage for COD order', err)
+    }
+  }
 
   if (!order.email_sent_at) {
     try {

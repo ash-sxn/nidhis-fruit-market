@@ -189,6 +189,7 @@ export type Database = {
           currency: string
           address_snapshot: Json
           payment_ref: string | null
+          order_number: string | null
           subtotal_cents: number | null
           discount_cents: number | null
           shipping_cents: number | null
@@ -215,6 +216,7 @@ export type Database = {
           currency?: string
           address_snapshot: Json
           payment_ref?: string | null
+          order_number?: string | null
           subtotal_cents?: number | null
           discount_cents?: number | null
           shipping_cents?: number | null
@@ -241,6 +243,7 @@ export type Database = {
           currency?: string
           address_snapshot?: Json
           payment_ref?: string | null
+          order_number?: string | null
           subtotal_cents?: number | null
           discount_cents?: number | null
           shipping_cents?: number | null

@@ -12,6 +12,7 @@ import { formatInrFromCents } from "@/lib/utils"
 import { ensureRazorpay } from "@/lib/razorpay"
 import { toast } from "@/components/ui/use-toast"
 import { Input } from "@/components/ui/input"
+import { useNavigate } from "react-router-dom"
 import type { Database } from "@/integrations/supabase/types"
 
 const SHIPPING_OPTIONS = [
@@ -90,6 +91,7 @@ async function fetchSavedAddresses(): Promise<SavedAddress[]> {
 }
 
 export default function CheckoutPage() {
+  const navigate = useNavigate()
   const { data: cart = [], isLoading } = useQuery({ queryKey: ['cart-with-products'], queryFn: fetchCartWithProducts })
   const { register, handleSubmit, formState: { errors, isSubmitting }, setValue } = useForm<AddressInput>({ resolver: zodResolver(AddressSchema) })
   const [selectedShipping, setSelectedShipping] = useState<typeof SHIPPING_OPTIONS[number]>(SHIPPING_OPTIONS[0])
@@ -217,7 +219,7 @@ export default function CheckoutPage() {
         const { data: auth2 } = await supabase.auth.getUser()
         if (auth2.user) await supabase.from('cart_items').delete().eq('user_id', auth2.user.id)
         toast({ title: 'Order placed with Cash on Delivery', description: 'We will confirm your order shortly.' })
-        window.location.href = '/account?payment=cod'
+        navigate(`/order/${orderId}/confirmation`, { replace: true, state: { method: 'cod' } })
         return
       }
 
@@ -271,10 +273,10 @@ export default function CheckoutPage() {
 
             const { data: auth2 } = await supabase.auth.getUser()
             if (auth2.user) await supabase.from('cart_items').delete().eq('user_id', auth2.user.id)
-            window.location.href = '/account'
+            navigate(`/order/${orderId}/confirmation`, { replace: true, state: { method: 'online' } })
           } catch (err) {
             console.error(err)
-            window.location.href = '/checkout?payment=failed'
+            navigate('/checkout?payment=failed', { replace: true })
           }
         },
         theme: { color: '#0E7C4A' },
