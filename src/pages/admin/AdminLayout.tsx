@@ -1,12 +1,13 @@
 import React from "react"
 import { NavLink, Outlet } from "react-router-dom"
-import { ClipboardList, LogOut, Package, PieChart, Users } from "lucide-react"
+import { ClipboardList, LogOut, Package, PieChart, Users, Newspaper } from "lucide-react"
 import { supabase } from "@/integrations/supabase/client"
 
 const navItems = [
   { to: "/admin", label: "Dashboard", icon: PieChart, end: true },
   { to: "/admin/products", label: "Products", icon: Package },
   { to: "/admin/orders", label: "Orders", icon: ClipboardList },
+  { to: "/admin/blog", label: "Blog", icon: Newspaper },
   { to: "/admin/team", label: "Team", icon: Users }
 ]
 
